@@ -1,16 +1,16 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-require 'json'
-require 'fileutils'
-require 'pathname'
-require 'date'
+require "json"
+require "fileutils"
+require "pathname"
+require "date"
 
 # Parser class for extracting metadata from Homebrew formulae
 class FormulaParser
-  FORMULA_DIR = File.expand_path('../Formula', __dir__)
-  OUTPUT_DIR = File.expand_path('../docs/_data', __dir__)
-  OUTPUT_FILE = File.join(OUTPUT_DIR, 'formulae.json')
+  FORMULA_DIR = File.expand_path("../Formula", __dir__)
+  OUTPUT_DIR = File.expand_path("../docs/_data", __dir__)
+  OUTPUT_FILE = File.join(OUTPUT_DIR, "formulae.json")
 
   # Regex patterns for safe extraction without code evaluation
   PATTERNS = {
@@ -46,7 +46,7 @@ class FormulaParser
   end
 
   def formula_files
-    Dir.glob(File.join(FORMULA_DIR, '**', '*.rb'))
+    Dir.glob(File.join(FORMULA_DIR, "**", "*.rb"))
   end
 
   def parse_formula(file_path)
@@ -103,18 +103,18 @@ class FormulaParser
 
     # Convert CamelCase to kebab-case
     class_name
-      .gsub(/([a-z\d])([A-Z])/, '\1-\2')
+      .gsub(/([a-z\d])([A-Z])/, "\1-\2")
       .downcase
   end
 
   def format_time_iso8601(time)
     # Format time manually for compatibility
-    time.strftime('%Y-%m-%dT%H:%M:%S%z').gsub(/(\d{2})(\d{2})$/, '\1:\2')
+    time.strftime("%Y-%m-%dT%H:%M:%S%z").gsub(/(\d{2})(\d{2})$/, "\1:\2")
   end
 
   def write_json_output(formulae)
     output = {
-      tap_name: 'ivuorinen/tap',
+      tap_name: "ivuorinen/tap",
       generated_at: format_time_iso8601(Time.now),
       formulae_count: formulae.length,
       formulae: formulae

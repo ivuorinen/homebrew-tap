@@ -1,16 +1,16 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-require 'fileutils'
+require "fileutils"
 
 # Simple make-style command runner for homebrew tap
 class Make
   COMMANDS = {
-    'build' => 'Build the static site',
-    'serve' => 'Start development server',
-    'parse' => 'Parse formulae and generate JSON data',
-    'clean' => 'Clean generated files',
-    'help' => 'Show this help message'
+    "build" => "Build the static site",
+    "serve" => "Start development server",
+    "parse" => "Parse formulae and generate JSON data",
+    "clean" => "Clean generated files",
+    "help" => "Show this help message"
   }.freeze
 
   def self.run(command = nil)
@@ -19,15 +19,15 @@ class Make
 
   def execute(command)
     case command&.downcase
-    when 'build'
+    when "build"
       build
-    when 'serve'
+    when "serve"
       serve
-    when 'parse'
+    when "parse"
       parse
-    when 'clean'
+    when "clean"
       clean
-    when 'help', nil
+    when "help", nil
       help
     else
       puts "❌ Unknown command: #{command}"
@@ -41,10 +41,10 @@ class Make
   def build
     puts "🏗️  Building homebrew tap documentation..."
 
-    success = system('ruby', script_path('parse_formulas.rb'))
+    success = system("ruby", script_path("parse_formulas.rb"))
     exit 1 unless success
 
-    success = system('ruby', script_path('build_site.rb'))
+    success = system("ruby", script_path("build_site.rb"))
     exit 1 unless success
 
     puts "✅ Build complete!"
@@ -52,17 +52,17 @@ class Make
 
   def serve
     port = ARGV[1]&.to_i || 4000
-    host = ARGV[2] || 'localhost'
+    host = ARGV[2] || "localhost"
 
     puts "🚀 Starting development server on http://#{host}:#{port}"
 
-    exec('ruby', script_path('serve.rb'), port.to_s, host)
+    exec("ruby", script_path("serve.rb"), port.to_s, host)
   end
 
   def parse
     puts "📋 Parsing formulae..."
 
-    success = system('ruby', script_path('parse_formulas.rb'))
+    success = system("ruby", script_path("parse_formulas.rb"))
     exit 1 unless success
 
     puts "✅ Formulae parsing complete!"
@@ -72,13 +72,13 @@ class Make
     puts "🧹 Cleaning generated files..."
 
     files_to_clean = [
-      docs_path('index.html'),
-      docs_path('formulae.html'),
-      docs_path('formula'),
-      docs_path('_templates'),
-      docs_path('_data', 'formulae.json'),
-      docs_path('style.css'),
-      docs_path('main.js')
+      docs_path("index.html"),
+      docs_path("formulae.html"),
+      docs_path("formula"),
+      docs_path("_templates"),
+      docs_path("_data", "formulae.json"),
+      docs_path("style.css"),
+      docs_path("main.js")
     ]
 
     files_to_clean.each do |path|
@@ -113,7 +113,7 @@ class Make
   end
 
   def docs_path(*parts)
-    File.join(__dir__, '..', 'docs', *parts)
+    File.join(__dir__, "..", "docs", *parts)
   end
 end
 
