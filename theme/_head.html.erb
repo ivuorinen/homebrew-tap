@@ -1,0 +1,31 @@
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <% page_title = title.to_s %>
+  <title><%= h(page_title) %></title>
+  <% stylesheet = style_path || 'style.css' %>
+  <link rel="stylesheet" href="<%= h(stylesheet) %>">
+  <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class"
+    };
+  </script>
+  <script>
+    (function () {
+      if (typeof window === "undefined") return;
+      try {
+        const stored = window.localStorage.getItem("theme");
+        const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+        const theme = stored || (prefersDark ? "dark" : "light");
+        document.documentElement.classList.toggle("dark", theme === "dark");
+        document.documentElement.classList.toggle("light", theme !== "dark");
+        document.documentElement.setAttribute("data-theme", theme);
+      } catch (error) {
+        document.documentElement.classList.toggle("dark", false);
+        document.documentElement.classList.toggle("light", true);
+        document.documentElement.setAttribute("data-theme", "light");
+      }
+    })();
+  </script>
+</head>

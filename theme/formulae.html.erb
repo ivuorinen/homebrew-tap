@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full min-h-full scroll-smooth font-sans transition-colors duration-200">
+<% raw_tap_name = @data['tap_name'].to_s %>
+<% tap_name = raw_tap_name.empty? ? 'ivuorinen/tap' : raw_tap_name %>
+<%= render_partial('head', title: "All Formulae - #{tap_name}", style_path: 'style.css') %>
+<body class="min-h-screen bg-slate-50 text-slate-900 transition-colors duration-200 dark:bg-slate-950 dark:text-slate-100">
+  <div class="mx-auto flex min-h-screen max-w-6xl flex-col gap-12 px-6 py-10">
+    <%= render_partial('header', tap_name: tap_name, description: 'Homebrew Tap containing custom formulae for various tools and utilities.', active_page: :formulae, base_path: '') %>
+
+    <% if @data['formulae_count'].to_i == 0 %>
+      <%= render_partial('nothing_here') %>
+    <% else %>
+
+    <main class="flex flex-1 flex-col gap-8">
+      <section class="space-y-6">
+        <div class="flex items-end justify-between gap-4">
+          <h2 class="text-2xl font-semibold tracking-tight px-8">All Formulae</h2>
+          <p class="text-sm text-slate-500 dark:text-slate-400 px-8"><%= h(@data['formulae_count'].to_s) %> total</p>
+        </div>
+        <div class="mb-4">
+          <input
+            type="search"
+            id="formula-search"
+            placeholder="Search formulae..."
+            class="w-full rounded-xl border border-slate-200 bg-white px-8 py-2 text-sm placeholder-slate-400 shadow-sm transition focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400 dark:border-slate-700 dark:bg-slate-900 dark:placeholder-slate-500 dark:focus:border-sky-300 dark:focus:ring-sky-300"
+          >
+        </div>
+
+        <div class="formula-grid grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          <%
+            # Sort all formulae alphabetically by name
+            @data['formulae'].sort_by { |f| f['name'].to_s.downcase }.each do |formula|
+          %>
+            <%= render_partial('formula_card', formula: formula, base_path: '', show_homepage: true, show_dependencies: true, show_last_modified: true) %>
+          <% end %>
+        </div>
+      </section>
+    </main>
+
+    <% end %>
+
+    <%= render_partial('footer', generated_at: @data['generated_at']) %>
+  </div>
+  <script src="main.js"></script>
+</body>
+</html>

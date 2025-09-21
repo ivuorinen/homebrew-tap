@@ -1,0 +1,13 @@
+<% nav_base = "rounded-full px-3 py-1 transition hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white" %>
+<% nav_active = "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900" %>
+<% active_tab = (active || :none).to_sym rescue :none %>
+<% prefix = base_path.to_s %>
+<% href = lambda do |page|
+  prefix.empty? ? page : File.join(prefix, page)
+end %>
+<nav aria-label="Main navigation" class="flex flex-wrap items-center gap-3 text-sm font-medium text-slate-600 dark:text-slate-300">
+  <% home_classes = [nav_base, (active_tab == :home ? nav_active : nil)].compact.join(' ') %>
+  <% formulae_classes = [nav_base, (active_tab == :formulae ? nav_active : nil)].compact.join(' ') %>
+  <a href="<%= h(href.call('index.html')) %>" class="<%= home_classes %>">Home</a>
+  <a href="<%= h(href.call('formulae.html')) %>" class="<%= formulae_classes %>">All Formulae</a>
+</nav>

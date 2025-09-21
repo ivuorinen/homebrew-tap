@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full min-h-full scroll-smooth font-sans transition-colors duration-200">
+<% raw_tap_name = @data['tap_name'].to_s %>
+<% tap_name = raw_tap_name.empty? ? 'ivuorinen/tap' : raw_tap_name %>
+<% formula_name = @formula['name'].to_s %>
+<% name = h("#{tap_name}/#{formula_name}") %>
+<%= render_partial('head', title: "#{formula_name} - #{tap_name}", style_path: '../style.css') %>
+<body class="min-h-screen bg-slate-50 text-slate-900 transition-colors duration-200 dark:bg-slate-950 dark:text-slate-100">
+  <div class="mx-auto flex min-h-screen max-w-6xl flex-col gap-12 px-6 py-10">
+    <%= render_partial('header', tap_name: name, description: @formula['description'].to_s, active_page: :formulae, base_path: '../') %>
+
+    <main class="flex flex-1 flex-col gap-8">
+      <section class="space-y-4">
+        <div class="flex items-center justify-between px-8 pr-6">
+          <h2 class="text-2xl font-semibold tracking-tight h-10">Installation</h2>
+          <div class="flex gap-2">
+            <% if @formula['url'] %>
+              <a href="<%= h(@formula['url'].to_s) %>" target="_blank" class="inline-flex items-center justify-center rounded-full border border-slate-200 p-2 text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 dark:border-slate-700 dark:text-slate-400 dark:hover:border-slate-600 dark:hover:bg-slate-800 dark:hover:text-white" aria-label="Download source">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+              </a>
+            <% end %>
+            <% if @formula['homepage'] %>
+              <a href="<%= h(@formula['homepage'].to_s) %>" target="_blank" class="inline-flex items-center justify-center rounded-full border border-slate-200 p-2 text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 dark:border-slate-700 dark:text-slate-400 dark:hover:border-slate-600 dark:hover:bg-slate-800 dark:hover:text-white" aria-label="View on GitHub">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                </svg>
+              </a>
+            <% end %>
+          </div>
+        </div>
+        <%= render_partial('command_input', command: "brew install #{name}", size: 'lg', label: 'CLI') %>
+      </section>
+
+      <section>
+        <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white/80 shadow-sm ring-1 ring-black/5 dark:border-slate-700 dark:bg-slate-900/70 dark:ring-white/10">
+          <table class="w-full divide-y divide-slate-200 text-sm dark:divide-slate-700">
+            <caption class="sr-only">Formula Details</caption>
+            <tbody>
+              <% if @formula['version'] %>
+                <tr class="divide-x divide-slate-200 dark:divide-slate-700">
+                  <th scope="row" class="w-40 bg-slate-50 px-4 py-3 text-left font-medium text-slate-700 dark:bg-slate-900 dark:text-slate-300">Version</th>
+                  <td class="px-4 py-3 text-slate-600 dark:text-slate-200"><%= h(@formula['version'].to_s) %></td>
+                </tr>
+              <% end %>
+              <% if @formula['license'] %>
+                <tr class="divide-x divide-slate-200 dark:divide-slate-700">
+                  <th scope="row" class="w-40 bg-slate-50 px-4 py-3 text-left font-medium text-slate-700 dark:bg-slate-900 dark:text-slate-300">License</th>
+                  <td class="px-4 py-3 text-slate-600 dark:text-slate-200"><%= h(@formula['license'].to_s) %></td>
+                </tr>
+              <% end %>
+              <% if @formula['homepage'] %>
+                <tr class="divide-x divide-slate-200 dark:divide-slate-700">
+                  <th scope="row" class="w-40 bg-slate-50 px-4 py-3 text-left font-medium text-slate-700 dark:bg-slate-900 dark:text-slate-300">Homepage</th>
+                  <td class="px-4 py-3">
+                    <a href="<%= h(@formula['homepage'].to_s) %>" target="_blank" class="inline-flex items-center gap-1 text-sky-600 transition hover:text-sky-500 dark:text-sky-400 dark:hover:text-sky-300">
+                      <%= h(@formula['homepage'].to_s) %>
+                      <span aria-hidden="true">↗</span>
+                    </a>
+                  </td>
+                </tr>
+              <% end %>
+              <% dependencies = Array(@formula['dependencies']).reject(&:nil?) %>
+              <% if dependencies.any? %>
+                <tr class="divide-x divide-slate-200 dark:divide-slate-700">
+                  <th scope="row" class="w-40 bg-slate-50 px-4 py-3 text-left font-medium text-slate-700 dark:bg-slate-900 dark:text-slate-300">Dependencies</th>
+                  <td class="px-4 py-3">
+                    <div class="flex flex-wrap gap-2">
+                      <% dependencies.each do |dep| %>
+                        <span class="inline-flex items-center rounded-full bg-slate-800 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white dark:bg-slate-700">dep: <%= h(dep.to_s) %></span>
+                      <% end %>
+                    </div>
+                  </td>
+                </tr>
+              <% end %>
+              <tr class="divide-x divide-slate-200 dark:divide-slate-700">
+                <th scope="row" class="w-40 bg-slate-50 px-4 py-3 text-left font-medium text-slate-700 dark:bg-slate-900 dark:text-slate-300">Formula File</th>
+                <td class="px-4 py-3"><code class="rounded-xl bg-slate-900 px-3 py-2 font-mono text-xs text-slate-100 dark:bg-slate-950"><%= h(@formula['file_path'].to_s) %></code></td>
+              </tr>
+              <tr class="divide-x divide-slate-200 dark:divide-slate-700">
+                <th scope="row" class="w-40 bg-slate-50 px-4 py-3 text-left font-medium text-slate-700 dark:bg-slate-900 dark:text-slate-300">Last Modified</th>
+                <td class="px-4 py-3 text-slate-600 dark:text-slate-200"><%= h(@formula['last_modified'].to_s) %></td>
+              </tr>
+              <% if @formula['sha256'] %>
+                <tr class="divide-x divide-slate-200 dark:divide-slate-700">
+                  <th scope="row" class="w-40 bg-slate-50 px-4 py-3 text-left font-medium text-slate-700 dark:bg-slate-900 dark:text-slate-300">SHA256</th>
+                  <td class="px-4 py-3">
+                    <input
+                      type="text"
+                      readonly
+                      value="<%= h(@formula['sha256'].to_s) %>"
+                      onclick="this.select()"
+                      class="w-full bg-slate-50 dark:bg-slate-800 px-3 py-1.5 font-mono text-xs text-slate-800 dark:text-slate-200 rounded-lg border border-slate-200 dark:border-slate-600 cursor-pointer appearance-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-400 dark:focus-visible:outline-sky-300 focus-visible:outline-offset-[-2px]"
+                    >
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <%= render_partial('footer', generated_at: @data['generated_at']) %>
+  <script src="../main.js"></script>
+</body>
+</html>

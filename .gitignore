@@ -3,11 +3,13 @@ Gemfile.lock
 .bundle/
 vendor/bundle/
 
-# Jekyll
-docs/_site/
-docs/.sass-cache/
-docs/.jekyll-cache/
-docs/.jekyll-metadata
+# Generated site files
+docs/**/*.html
+docs/*.css
+docs/*.js
+docs/_data/formulae.json
+docs/assets/*
+!docs/assets/.gitkeep
 
 # macOS
 .DS_Store
@@ -23,5 +25,5 @@ docs/.jekyll-metadata
 # Logs
 *.log
 
-# Generated files
-docs/_data/formulae.json
+# Other
+AGENTS.md

@@ -1,0 +1,55 @@
+<%
+# Required parameters:
+# - formula: The formula hash object
+# - base_path: Path prefix for formula links (e.g., '' or '../')
+# Optional parameters:
+# - show_homepage: Show homepage link (default: false)
+# - show_dependencies: Show dependency badges (default: false)
+# - show_last_modified: Show last modified time (default: false)
+
+formula_name = formula['name'].to_s
+return if formula_name.empty?
+formula_slug = formula_name.gsub(/[^a-z0-9._-]/i, '-')
+formula_slug = formula_name if formula_slug.empty?
+formula_description = formula['description'].to_s
+# Check if methods exist (they're defined as singleton methods in PartialContext)
+show_homepage = respond_to?(:show_homepage) ? self.show_homepage : false
+show_dependencies = respond_to?(:show_dependencies) ? self.show_dependencies : false
+show_last_modified = respond_to?(:show_last_modified) ? self.show_last_modified : false
+%>
+<article class="formula-card flex h-full flex-col gap-4 rounded-3xl border border-slate-200 bg-white/80 p-6 shadow-sm ring-1 ring-black/5 transition hover:-translate-y-1 hover:shadow-md dark:border-slate-700 dark:bg-slate-900/70 dark:ring-white/10">
+  <header class="space-y-2">
+    <h3 class="text-xl font-semibold">
+      <a href="<%= base_path %>formula/<%= h(formula_slug) %>.html" class="transition hover:text-sky-600 dark:hover:text-sky-400"><%= h(formula_name) %></a>
+    </h3>
+    <p class="text-sm text-slate-600 dark:text-slate-300"><%= h(formula_description) %></p>
+    <% if show_homepage && formula['homepage'] %>
+      <p class="text-sm">
+        <a href="<%= h(formula['homepage'].to_s) %>" target="_blank" class="inline-flex items-center gap-1 text-sky-600 transition hover:text-sky-500 dark:text-sky-400 dark:hover:text-sky-300">
+          Homepage
+          <span aria-hidden="true">↗</span>
+        </a>
+      </p>
+    <% end %>
+  </header>
+
+  <% if show_last_modified && formula['last_modified'] %>
+  <div class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+    <span>Updated <%= format_relative_time(formula['last_modified']) %></span>
+  </div>
+  <% end %>
+
+  <div class="flex flex-wrap gap-2">
+    <% if formula['license'] %>
+      <span class="badge inline-flex items-center rounded-full bg-sky-500 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white dark:bg-sky-400">License: <%= h(formula['license'].to_s) %></span>
+    <% end %>
+    <% if formula['version'] %>
+      <span class="badge inline-flex items-center rounded-full bg-emerald-500 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white dark:bg-emerald-400">v<%= h(formula['version'].to_s) %></span>
+    <% end %>
+    <% if show_dependencies %>
+      <% Array(formula['dependencies']).compact.each do |dep| %>
+        <span class="badge inline-flex items-center rounded-full bg-slate-800 px-3 py-1 text-xs uppercase tracking-wide text-white dark:bg-slate-700">dep: <%= h(dep.to_s) %></span>
+      <% end %>
+    <% end %>
+  </div>
+</article>

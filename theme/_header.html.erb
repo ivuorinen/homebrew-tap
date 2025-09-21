@@ -1,0 +1,15 @@
+<header class="flex flex-col gap-6">
+  <nav aria-label="Main navigation" class="px-8">
+    <%= render_partial('nav', active: active_page, base_path: base_path) %>
+  </nav>
+
+  <div class="header flex flex-col gap-6 rounded-3xl border border-slate-200 bg-white/80 p-8 shadow-sm ring-1 ring-black/5 backdrop-blur dark:border-slate-700 dark:bg-slate-900/80 dark:ring-white/10">
+    <div class="flex items-start justify-between gap-4">
+      <div class="space-y-2">
+        <h1 class="text-3xl font-bold tracking-tight md:text-4xl"><%= h(tap_name) %></h1>
+        <p class="max-w-3xl text-base text-slate-600 dark:text-slate-300"><%= h(description) %></p>
+      </div>
+      <button class="theme-toggle inline-flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white/80 text-xl text-slate-600 shadow-sm transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500 dark:border-slate-600 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white" aria-label="Toggle dark mode" tabindex="0">🌙</button>
+    </div>
+  </div>
+</header>

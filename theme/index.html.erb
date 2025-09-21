@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full min-h-full scroll-smooth font-sans transition-colors duration-200">
+<% raw_tap_name = @data['tap_name'].to_s %>
+<% safe_tap_name = raw_tap_name.empty? ? 'ivuorinen/homebrew-tap' : raw_tap_name %>
+<%= render_partial('head', title: safe_tap_name, style_path: 'style.css') %>
+<body class="min-h-screen bg-slate-50 text-slate-900 transition-colors duration-200 dark:bg-slate-950 dark:text-slate-100">
+  <div class="mx-auto flex min-h-screen max-w-6xl flex-col gap-12 px-6 py-10">
+    <%= render_partial('header', tap_name: safe_tap_name, description: 'Homebrew Tap containing custom formulae for various tools and utilities.', active_page: :home, base_path: '') %>
+
+    <% if @data['formulae_count'].to_i == 0 %>
+      <%= render_partial('nothing_here') %>
+    <% else %>
+
+    <main class="flex flex-1 flex-col gap-8">
+      <section class="space-y-4">
+        <h2 class="text-2xl font-semibold tracking-tight px-8 h-10">Quick Start</h2>
+        <%= render_partial('command_input', command: "brew tap #{safe_tap_name}", size: 'lg', label: 'CLI') %>
+      </section>
+
+      <section class="space-y-6">
+        <div class="flex items-end justify-between gap-4">
+          <h2 class="text-2xl font-semibold tracking-tight px-8">Latest Updates</h2>
+          <a href="formulae.html" class="text-sm text-sky-600 hover:text-sky-500 dark:text-sky-400 dark:hover:text-sky-300 px-8">View all <%= h(@data['formulae_count'].to_s) %> formulae →</a>
+        </div>
+
+        <div class="formula-grid grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          <%
+            # Sort formulae by last_modified date (most recent first) and take top 6
+            sorted_formulae = Array(@data['formulae'])
+              .select { |f| f.is_a?(Hash) && f['last_modified'] }
+              .sort_by { |f| f['last_modified'] }
+              .reverse
+              .first(6)
+
+            sorted_formulae.each do |formula|
+          %>
+            <%= render_partial('formula_card', formula: formula, base_path: '', show_last_modified: true) %>
+          <% end %>
+        </div>
+      </section>
+    </main>
+    <% end %>
+
+
+    <%= render_partial('footer', generated_at: @data['generated_at'].to_s) %>
+  </div>
+  <script src="main.js"></script>
+</body>
+</html>

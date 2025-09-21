@@ -1,17 +1,16 @@
+---
 name: Build and Deploy Documentation
 on:
   push:
     branches: [main]
     paths:
-      - 'Formula/**'
-      - 'docs/**'
-      - 'scripts/**'
+      - "Formula/**"
+      - "docs/**"
+      - "scripts/**"
+      - "theme/**"
   workflow_dispatch:
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
+permissions: read-all
 
 concurrency:
   group: pages
@@ -20,6 +19,11 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -28,30 +32,21 @@ jobs:
 
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.4'
-          bundler-cache: true
 
-      - name: Parse Formulae and Generate Data
+      - name: Parse Formulae and Build Site
         run: |
           ruby scripts/parse_formulas.rb
           echo "Generated formulae.json with $(jq '.formulae | length' docs/_data/formulae.json) formulae"
+          ruby scripts/build_site.rb
 
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v5
 
-      - name: Build Jekyll Site
-        run: |
-          cd docs
-          bundle exec jekyll build --baseurl "${{ steps.pages.outputs.base_path }}"
-        env:
-          JEKYLL_ENV: production
-
       - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs/_site
+          path: docs
 
   deploy:
     environment:
@@ -59,6 +54,12 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     needs: build
+
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+
     steps:
       - name: Deploy to GitHub Pages
         id: deployment

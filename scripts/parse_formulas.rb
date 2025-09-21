@@ -114,7 +114,7 @@ class FormulaParser
 
   def write_json_output(formulae)
     output = {
-      tap_name: 'ivuorinen/homebrew-tap',
+      tap_name: 'ivuorinen/tap',
       generated_at: format_time_iso8601(Time.now),
       formulae_count: formulae.length,
       formulae: formulae
