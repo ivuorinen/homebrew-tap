@@ -51,7 +51,7 @@ module FileWatcher
       style_and_script_files,
       asset_files,
       build_script_files,
-      config_files
+      config_files,
     ].flatten.compact.uniq
   end
 
@@ -95,14 +95,14 @@ module FileWatcher
       Dir.glob(File.expand_path("../theme/*.erb", __dir__)),
       Dir.glob(File.expand_path("../theme/_*.erb", __dir__)),
       Dir.glob(File.expand_path("../theme/*.html.erb", __dir__)),
-      Dir.glob(File.expand_path("../theme/_*.html.erb", __dir__))
+      Dir.glob(File.expand_path("../theme/_*.html.erb", __dir__)),
     ].flatten
   end
 
   def style_and_script_files
     [
       Dir.glob(File.expand_path("../theme/*.css", __dir__)),
-      Dir.glob(File.expand_path("../theme/*.js", __dir__))
+      Dir.glob(File.expand_path("../theme/*.js", __dir__)),
     ].flatten
   end
 
@@ -113,7 +113,7 @@ module FileWatcher
   def build_script_files
     [
       File.expand_path("../scripts/parse_formulas.rb", __dir__),
-      File.expand_path("../scripts/build_site.rb", __dir__)
+      File.expand_path("../scripts/build_site.rb", __dir__),
     ]
   end
 
@@ -161,14 +161,14 @@ class DevServer
 
   def start_server
     server = WEBrick::HTTPServer.new(
-      Port: @port,
-      Host: @host,
+      Port:         @port,
+      Host:         @host,
       DocumentRoot: @site_dir,
-      Logger: WEBrick::Log.new($stderr, WEBrick::Log::INFO),
-      AccessLog: [[
+      Logger:       WEBrick::Log.new($stderr, WEBrick::Log::INFO),
+      AccessLog:    [[
         $stderr,
-        WEBrick::AccessLog::COMBINED_LOG_FORMAT
-      ]]
+        WEBrick::AccessLog::COMBINED_LOG_FORMAT,
+      ]],
     )
 
     # Handle Ctrl+C gracefully

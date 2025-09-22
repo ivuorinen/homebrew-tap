@@ -1,7 +1,7 @@
 # Homebrew Tap Makefile
 # Provides convenient commands for building and managing the tap documentation
 
-.PHONY: help build serve parse clean test install dev setup check
+.PHONY: help build serve parse clean test install dev setup check lint
 
 # Default target
 .DEFAULT_GOAL := help
@@ -115,6 +115,10 @@ tap-test: ## Test the tap installation locally
 tap-install: ## Install this tap locally for testing
 	@echo "🍺 Installing tap locally..."
 	@brew tap $$(pwd)
+
+lint: ## Lint all Ruby scripts
+	@echo "🔍 Linting Ruby scripts..."
+	@brew style --fix --reset-cache .
 
 formula-new: ## Create a new formula template (usage: make formula-new NAME=myformula)
 	@if [ -z "$(NAME)" ]; then \

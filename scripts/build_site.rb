@@ -26,7 +26,7 @@ module TimeFormatter
       return "just now" if diff < SECONDS_PER_MINUTE
 
       format_time_by_category(diff)
-    rescue StandardError
+    rescue
       ""
     end
   end
@@ -36,7 +36,7 @@ module TimeFormatter
 
     begin
       Time.parse(timestamp).strftime("%b %d, %Y")
-    rescue StandardError
+    rescue
       ""
     end
   end
@@ -418,10 +418,10 @@ class SiteBuilder
 
   def default_data
     {
-      "tap_name" => "ivuorinen/homebrew-tap",
-      "generated_at" => Time.now.strftime("%Y-%m-%dT%H:%M:%S%z"),
+      "tap_name"       => "ivuorinen/homebrew-tap",
+      "generated_at"   => Time.now.strftime("%Y-%m-%dT%H:%M:%S%z"),
       "formulae_count" => 0,
-      "formulae" => []
+      "formulae"       => [],
     }
   end
 end

@@ -16,13 +16,13 @@ class FormulaParser
   # Regex patterns for safe extraction without code evaluation
   PATTERNS = {
     class_name: /^class\s+(\w+)\s+<\s+Formula/,
-    desc: /^\s*desc\s+["']([^"']+)["']/,
-    homepage: /^\s*homepage\s+["']([^"']+)["']/,
-    url: /^\s*url\s+["']([^"']+)["']/,
-    version: /^\s*version\s+["']([^"']+)["']/,
-    sha256: /^\s*sha256\s+["']([a-f0-9]{64})["']/i,
-    license: /^\s*license\s+["']([^"']+)["']/,
-    depends_on: /^\s*depends_on\s+["']([^"']+)["']/
+    desc:       /^\s*desc\s+["']([^"']+)["']/,
+    homepage:   /^\s*homepage\s+["']([^"']+)["']/,
+    url:        /^\s*url\s+["']([^"']+)["']/,
+    version:    /^\s*version\s+["']([^"']+)["']/,
+    sha256:     /^\s*sha256\s+["']([a-f0-9]{64})["']/i,
+    license:    /^\s*license\s+["']([^"']+)["']/,
+    depends_on: /^\s*depends_on\s+["']([^"']+)["']/,
   }.freeze
 
   def self.run
@@ -61,24 +61,24 @@ class FormulaParser
     return if formula_name.blank?
 
     build_formula_metadata(content, file_path, formula_name, class_name)
-  rescue StandardError => e
+  rescue => e
     warn "⚠️  Error parsing #{file_path}: #{e.message}"
     nil
   end
 
   def build_formula_metadata(content, file_path, formula_name, class_name)
     {
-      name: formula_name,
-      class_name: class_name,
-      description: extract_value(content, :desc),
-      homepage: extract_value(content, :homepage),
-      url: extract_value(content, :url),
-      version: extract_version(content),
-      sha256: extract_value(content, :sha256),
-      license: extract_value(content, :license),
-      dependencies: extract_dependencies(content),
-      file_path: calculate_relative_path(file_path),
-      last_modified: format_time_iso8601(File.mtime(file_path))
+      name:          formula_name,
+      class_name:    class_name,
+      description:   extract_value(content, :desc),
+      homepage:      extract_value(content, :homepage),
+      url:           extract_value(content, :url),
+      version:       extract_version(content),
+      sha256:        extract_value(content, :sha256),
+      license:       extract_value(content, :license),
+      dependencies:  extract_dependencies(content),
+      file_path:     calculate_relative_path(file_path),
+      last_modified: format_time_iso8601(File.mtime(file_path)),
     }
   end
 
@@ -123,10 +123,10 @@ class FormulaParser
 
   def write_json_output(formulae)
     output = {
-      tap_name: "ivuorinen/tap",
-      generated_at: format_time_iso8601(Time.now),
+      tap_name:       "ivuorinen/tap",
+      generated_at:   format_time_iso8601(Time.now),
       formulae_count: formulae.length,
-      formulae: formulae
+      formulae:       formulae,
     }
 
     File.write(OUTPUT_FILE, JSON.pretty_generate(output))

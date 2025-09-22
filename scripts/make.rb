@@ -11,7 +11,7 @@ class Make
     "serve" => "Start development server",
     "parse" => "Parse formulae and generate JSON data",
     "clean" => "Clean generated files",
-    "help" => "Show this help message"
+    "help"  => "Show this help message",
   }.freeze
 
   def self.run(command = nil)
@@ -79,7 +79,7 @@ class Make
       docs_path("_templates"),
       docs_path("_data", "formulae.json"),
       docs_path("style.css"),
-      docs_path("main.js")
+      docs_path("main.js"),
     ]
 
     files_to_clean.each do |path|
