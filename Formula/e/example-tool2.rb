@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+# Homebrew formula for ExampleTool2 - a second demonstration tool for this tap
 class ExampleTool2 < Formula
   desc "Second example tool to demonstrate the tap functionality"
   homepage "https://github.com/ivuorinen/example-tool2"

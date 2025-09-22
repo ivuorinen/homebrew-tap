@@ -1,41 +1,84 @@
+plugins:
+  - rubocop-performance
+  - rubocop-rspec
+
 AllCops:
   TargetRubyVersion: 3.4
   NewCops: enable
+  Include:
+    - "**/*.rb"
+    - "**/Brewfile"
   Exclude:
-    - 'vendor/**/*'
-    - 'docs/**/*'
-    - '.bundle/**/*'
-
-Layout/LineLength:
-  Max: 120
-  AllowedPatterns:
-    - '^\s*#'
-    - 'url "'
-
-Layout/IndentationStyle:
-  EnforcedStyle: spaces
-
-Layout/IndentationWidth:
-  Width: 2
+    - "bin/**/*"
+    - "vendor/**/*"
+    - "tmp/**/*"
+    - "docs/**/*"
+    - ".git/**/*"
+    - "node_modules/**/*"
 
 Style/StringLiterals:
+  Enabled: true
+  EnforcedStyle: double_quotes
+
+Style/StringLiteralsInInterpolation:
+  Enabled: true
   EnforcedStyle: double_quotes
 
 Style/FrozenStringLiteralComment:
   Enabled: true
-  EnforcedStyle: always
 
-Naming/FileName:
+# Layout configurations
+Layout/LineLength:
+  Max: 120
   Exclude:
-    - 'Formula/**/*.rb'
+    - "Formula/**/*"
+
+Layout/MultilineOperationIndentation:
+  EnforcedStyle: indented
+
+# Lint configurations
+Lint/DuplicateBranch:
+  Exclude:
+    - "scripts/build_site.rb" # minify_js_content has intentional duplicate for readability
+
+# Metrics configurations
+Metrics/BlockLength:
+  Exclude:
+    - "spec/**/*"
+    - "Formula/**/*"
 
 Metrics/MethodLength:
   Max: 30
-
-Metrics/ClassLength:
-  Max: 150
-
-Metrics/BlockLength:
   Exclude:
-    - 'spec/**/*'
-    - '*.gemspec'
+    - "scripts/build_site.rb" # minify_js_content is necessarily complex
+
+# Naming configurations
+Naming/FileName:
+  Exclude:
+    - "Gemfile"
+    - "Rakefile"
+    - "Formula/**/*"
+
+# Performance configurations
+Performance/RegexpMatch:
+  Enabled: true
+
+# RSpec configurations
+RSpec/ExampleLength:
+  Max: 20
+
+RSpec/MultipleExpectations:
+  Max: 3
+
+# Formula-specific rules (Homebrew formulae have their own conventions)
+Style/ClassAndModuleChildren:
+  Exclude:
+    - "Formula/**/*"
+
+Naming/MethodName:
+  Exclude:
+    - "Formula/**/*"
+
+Naming/VariableName:
+  Exclude:
+    - "Formula/**/*"

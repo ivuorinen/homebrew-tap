@@ -1,43 +1,43 @@
 @font-face {
-    font-family: "Monaspace Argon";
-    src:
-        url("assets/MonaspaceArgonVar.woff2") format("woff2"),
-        url("assets/MonaspaceArgonVar.woff") format("woff");
-    font-weight: 100 900;
-    font-style: normal;
-    font-display: swap;
+  font-family: "Monaspace Argon";
+  src:
+    url("assets/MonaspaceArgonVar.woff2") format("woff2"),
+    url("assets/MonaspaceArgonVar.woff") format("woff");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
 }
 
 :root {
-    color-scheme: light dark;
+  color-scheme: light dark;
 }
 
 html {
-    font-family:
-        "Monaspace Argon",
-        -apple-system,
-        BlinkMacSystemFont,
-        "Segoe UI",
-        Helvetica,
-        Arial,
-        sans-serif;
+  font-family:
+    "Monaspace Argon",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Helvetica,
+    Arial,
+    sans-serif;
 }
 
 body {
-    font-family:
-        "Monaspace Argon",
-        -apple-system,
-        BlinkMacSystemFont,
-        "Segoe UI",
-        Helvetica,
-        Arial,
-        sans-serif;
+  font-family:
+    "Monaspace Argon",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Helvetica,
+    Arial,
+    sans-serif;
 }
 
 code,
 pre {
-    font-family: "Monaspace Argon", monospace;
-    font-feature-settings:
-        "calt", "ss01", "ss02", "ss03", "ss04", "ss05", "ss06", "ss07", "ss08", "ss09", "ss10",
-        "liga";
+  font-family: "Monaspace Argon", monospace;
+  font-feature-settings:
+    "calt", "ss01", "ss02", "ss03", "ss04", "ss05", "ss06", "ss07", "ss08",
+    "ss09", "ss10", "liga";
 }

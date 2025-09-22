@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# typed: strict
 # frozen_string_literal: true
 
 require "json"
@@ -8,9 +9,9 @@ require "date"
 
 # Parser class for extracting metadata from Homebrew formulae
 class FormulaParser
-  FORMULA_DIR = File.expand_path("../Formula", __dir__)
-  OUTPUT_DIR = File.expand_path("../docs/_data", __dir__)
-  OUTPUT_FILE = File.join(OUTPUT_DIR, "formulae.json")
+  FORMULA_DIR = File.expand_path("../Formula", __dir__).freeze
+  OUTPUT_DIR = File.expand_path("../docs/_data", __dir__).freeze
+  OUTPUT_FILE = File.join(OUTPUT_DIR, "formulae.json").freeze
 
   # Regex patterns for safe extraction without code evaluation
   PATTERNS = {
@@ -42,7 +43,7 @@ class FormulaParser
   end
 
   def parse_all_formulae
-    formula_files.map { |file| parse_formula(file) }.compact.sort_by { |f| f[:name] }
+    formula_files.filter_map { |file| parse_formula(file) }.sort_by { |f| f[:name] }
   end
 
   def formula_files
@@ -53,12 +54,19 @@ class FormulaParser
     content = File.read(file_path)
     class_name = extract_value(content, :class_name)
 
-    return nil unless class_name
+    return unless class_name
 
     formula_name = convert_class_name_to_formula_name(class_name)
 
-    return nil if formula_name.nil? || formula_name.empty?
+    return if formula_name.blank?
 
+    build_formula_metadata(content, file_path, formula_name, class_name)
+  rescue StandardError => e
+    warn "⚠️  Error parsing #{file_path}: #{e.message}"
+    nil
+  end
+
+  def build_formula_metadata(content, file_path, formula_name, class_name)
     {
       name: formula_name,
       class_name: class_name,
@@ -69,12 +77,13 @@ class FormulaParser
       sha256: extract_value(content, :sha256),
       license: extract_value(content, :license),
       dependencies: extract_dependencies(content),
-      file_path: Pathname.new(file_path).relative_path_from(Pathname.new(FORMULA_DIR)).to_s,
+      file_path: calculate_relative_path(file_path),
       last_modified: format_time_iso8601(File.mtime(file_path))
     }
-  rescue StandardError => e
-    warn "⚠️  Error parsing #{file_path}: #{e.message}"
-    nil
+  end
+
+  def calculate_relative_path(file_path)
+    Pathname.new(file_path).relative_path_from(Pathname.new(FORMULA_DIR)).to_s
   end
 
   def extract_value(content, pattern_key)
@@ -88,7 +97,7 @@ class FormulaParser
     return explicit if explicit
 
     url = extract_value(content, :url)
-    return nil unless url
+    return unless url
 
     # Common version patterns in URLs
     url.match(/v?(\d+(?:\.\d+)+)/)&.[](1)
@@ -99,7 +108,7 @@ class FormulaParser
   end
 
   def convert_class_name_to_formula_name(class_name)
-    return nil unless class_name
+    return unless class_name
 
     # Convert CamelCase to kebab-case
     class_name

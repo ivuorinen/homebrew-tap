@@ -19,7 +19,9 @@
   }
 
   function getSystemTheme() {
-    return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    return window.matchMedia?.("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
   }
 
   function getCurrentTheme() {
@@ -137,8 +139,11 @@
     const cards = document.querySelectorAll(".formula-card");
 
     cards.forEach((card) => {
-      const text = `${card.querySelector("h3")?.textContent || ""} ${card.querySelector("p")?.textContent || ""}`;
-      card.style.display = !searchTerm || fuzzyMatch(searchTerm, text) ? "" : "none";
+      const text = `${card.querySelector("h3")?.textContent || ""} ${
+        card.querySelector("p")?.textContent || ""
+      }`;
+      card.style.display =
+        !searchTerm || fuzzyMatch(searchTerm, text) ? "" : "none";
     });
   }
   searchInput.addEventListener("input", () => {

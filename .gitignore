@@ -27,3 +27,6 @@ docs/assets/*
 
 # Other
 AGENTS.md
+.rubocop_todo.yml
+.serena
+CLAUDE.md
