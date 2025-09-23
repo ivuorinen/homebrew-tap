@@ -42,7 +42,7 @@ jobs:
 
       - name: Install project gems
         run: |
-          gem install bundler
+          gem install bundler --user-install
           bundle install
 
       - name: Run brew test-bot (cleanup)
