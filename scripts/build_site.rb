@@ -8,6 +8,13 @@ require "erb"
 require "pathname"
 require "time"
 
+# Simple polyfill for Homebrew extensions
+class Array
+  def exclude?(item)
+    !include?(item)
+  end
+end
+
 # Simple static site generator for homebrew tap documentation
 # Module for formatting timestamps and dates
 module TimeFormatter
@@ -73,6 +80,10 @@ end
 
 # Module for processing and copying assets
 module AssetProcessor
+  DOCS_DIR = File.expand_path("../docs", __dir__).freeze
+  OUTPUT_DIR = DOCS_DIR
+  THEME_SOURCE_DIR = File.expand_path("../theme", __dir__).freeze
+
   def copy_assets
     copy_asset_files
   end
@@ -207,8 +218,8 @@ module JavaScriptProcessor
   attr_reader :javascript
 end
 
-# Module for JavaScript minification
-module JavaScriptMinifier
+# Class for JavaScript minification
+class JavaScriptMinifier
   include JavaScriptProcessor
 
   def self.minify(javascript)

@@ -1,7 +1,7 @@
 # Homebrew Tap Makefile
 # Provides convenient commands for building and managing the tap documentation
 
-.PHONY: help build serve parse clean test install dev setup check lint
+.PHONY: help build serve parse clean test install dev setup check lint update
 
 # Default target
 .DEFAULT_GOAL := help
@@ -85,6 +85,35 @@ install: ## Install development dependencies (if Gemfile exists)
 		echo "✅ Dependencies installed!"; \
 	else \
 		echo "ℹ️  No Gemfile found, skipping dependency installation"; \
+	fi
+
+update: ## Update all gems to their latest versions (respecting Gemfile constraints)
+	@if [ -f Gemfile ]; then \
+		echo "🔄 Updating Ruby dependencies..."; \
+		echo "📦 Running bundle update..."; \
+		bundle update; \
+		echo "✅ All gems updated to latest versions!"; \
+		echo ""; \
+		echo "💡 Current gem versions:"; \
+		bundle list | grep -E "^\s*\*" | head -10; \
+	else \
+		echo "❌ No Gemfile found"; \
+		exit 1; \
+	fi
+
+update-bundler: ## Update bundler itself to the latest version
+	@echo "🔄 Updating Bundler..."
+	@gem update bundler
+	@echo "✅ Bundler updated!"
+	@echo "Current version: $$(bundle --version)"
+
+outdated: ## Show outdated gems
+	@if [ -f Gemfile ]; then \
+		echo "📋 Checking for outdated gems..."; \
+		bundle outdated || true; \
+	else \
+		echo "❌ No Gemfile found"; \
+		exit 1; \
 	fi
 
 watch: ## Watch for file changes and auto-rebuild (alias for serve)

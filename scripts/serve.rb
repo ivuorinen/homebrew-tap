@@ -29,6 +29,12 @@ module FileWatcher
         last_mtime = perform_rebuild_with_debounce
         rebuild_pending = false
         puts "✅ Rebuild complete"
+      rescue => e
+        puts "⚠️  File watcher error: #{e.message}"
+        puts "📍 Backtrace: #{e.backtrace.first(3).join(", ")}"
+        rebuild_pending = false
+        sleep 2
+        puts "🔄 File watcher continuing..."
       end
     end
   end
@@ -192,7 +198,7 @@ if __FILE__ == $PROGRAM_NAME
   # Check for --list-watched flag
   if ARGV.include?("--list-watched")
     server = DevServer.new
-    files = server.send(:all_watched_files).select { |f| File.exist?(f) && !File.directory?(f) }
+    files = server.all_watched_files.select { |f| File.exist?(f) && !File.directory?(f) }
     puts "📋 Watching #{files.count} files:"
     files.sort.each { |f| puts "  - #{f.sub("#{File.expand_path("..", __dir__)}/", "")}" }
     exit 0

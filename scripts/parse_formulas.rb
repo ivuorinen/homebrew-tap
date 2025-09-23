@@ -7,6 +7,14 @@ require "fileutils"
 require "pathname"
 require "date"
 
+# Simple polyfill for Homebrew extensions
+class String
+  def blank?
+    # Polyfill implementation to avoid external dependencies
+    nil? || empty? # rubocop:disable Homebrew/Blank
+  end
+end
+
 # Parser class for extracting metadata from Homebrew formulae
 class FormulaParser
   FORMULA_DIR = File.expand_path("../Formula", __dir__).freeze
