@@ -12,6 +12,11 @@ concurrency:
 
 permissions: read-all
 
+env:
+  HOMEBREW_DEVELOPER: 1
+  HOMEBREW_NO_AUTO_UPDATE: 1
+  HOMEBREW_NO_ENV_HINTS: 1
+
 jobs:
   test-bot:
     strategy:
@@ -26,6 +31,12 @@ jobs:
       actions: read
 
     steps:
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@0481980f17b760ef6bca5e8c55809102a0af1e5a # v1.263.0
+        with:
+          bundler-cache: true
+          ruby-version-file: .ruby-version
+
       - name: Set up Homebrew
         id: set-up-homebrew
         uses: Homebrew/actions/setup-homebrew@main
@@ -38,6 +49,7 @@ jobs:
           restore-keys: ${{ runner.os }}-rubygems-
 
       - name: Install Homebrew Bundler RubyGems
+        if: steps.cache.outputs.cache-hit != 'true'
         shell: bash
         run: brew install-bundler-gems
 
