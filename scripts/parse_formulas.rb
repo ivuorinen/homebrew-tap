@@ -120,13 +120,13 @@ class FormulaParser
 
     # Convert CamelCase to kebab-case
     class_name
-      .gsub(/([a-z\d])([A-Z])/, "\1-\2")
+      .gsub(/([a-z\d])([A-Z])/, '\1-\2')
       .downcase
   end
 
   def format_time_iso8601(time)
     # Format time manually for compatibility
-    time.strftime("%Y-%m-%dT%H:%M:%S%z").gsub(/(\d{2})(\d{2})$/, "\1:\2")
+    time.strftime("%Y-%m-%dT%H:%M:%S%z").gsub(/(\d{2})(\d{2})$/, '\1:\2')
   end
 
   def write_json_output(formulae)
