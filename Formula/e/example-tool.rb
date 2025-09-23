@@ -1,7 +1,10 @@
+# frozen_string_literal: true
+
+# Homebrew formula for ExampleTool - a demonstration tool for this tap
 class ExampleTool < Formula
-  desc "An example tool to demonstrate the tap functionality"
+  desc "Imaginery tool to demonstrate the tap functionality"
   homepage "https://github.com/ivuorinen/example-tool"
-  url "https://github.com/ivuorinen/example-tool/archive/v1.0.0.tar.gz"
+  url "https://github.com/ivuorinen/example-tool/refs/tags/v1.0.0.tar.gz"
   sha256 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
   license "MIT"
 

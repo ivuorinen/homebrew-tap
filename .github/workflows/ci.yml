@@ -49,8 +49,16 @@ jobs:
       - name: Run brew test-bot (tap syntax)
         run: brew test-bot --only-tap-syntax
 
+      - name: Check for real formulae (non-examples)
+        id: check-formulae
+        run: |
+          # Count formulae that are not example formulae
+          REAL_FORMULAE=$(find Formula -name "*.rb" ! -name "example-*.rb" | wc -l | tr -d ' ')
+          echo "real_formulae_count=$REAL_FORMULAE" >> "$GITHUB_OUTPUT"
+          echo "Found $REAL_FORMULAE real formulae (excluding examples)"
+
       - name: Run brew test-bot (formulae)
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && steps.check-formulae.outputs.real_formulae_count > 0
         run: brew test-bot --only-formulae
 
       - name: Upload bottles as artifact
