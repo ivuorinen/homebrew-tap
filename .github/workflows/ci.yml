@@ -41,7 +41,9 @@ jobs:
         run: brew install-bundler-gems
 
       - name: Install project gems
-        run: bundle install
+        run: |
+          gem install bundler
+          bundle install
 
       - name: Run brew test-bot (cleanup)
         run: brew test-bot --only-cleanup-before
