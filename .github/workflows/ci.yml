@@ -38,24 +38,32 @@ jobs:
           restore-keys: ${{ runner.os }}-rubygems-
 
       - name: Install Homebrew Bundler RubyGems
+        shell: bash
         run: brew install-bundler-gems
 
       - name: Install project gems
+        shell: bash
         run: |
+          export GEM_HOME="$HOME/.gem"
+          export PATH="$GEM_HOME/bin:$PATH"
           gem install bundler --user-install
           bundle install
 
       - name: Run brew test-bot (cleanup)
+        shell: bash
         run: brew test-bot --only-cleanup-before
 
       - name: Run brew test-bot (setup)
+        shell: bash
         run: brew test-bot --only-setup
 
       - name: Run brew test-bot (tap syntax)
+        shell: bash
         run: brew test-bot --only-tap-syntax
 
       - name: Check for real formulae (non-examples)
         id: check-formulae
+        shell: bash
         run: |
           # Count formulae that are not example formulae
           REAL_FORMULAE=$(find Formula -name "*.rb" ! -name "example-*.rb" | wc -l | tr -d ' ')
@@ -64,6 +72,7 @@ jobs:
 
       - name: Run brew test-bot (formulae)
         if: github.event_name == 'pull_request' && steps.check-formulae.outputs.real_formulae_count > 0
+        shell: bash
         run: brew test-bot --only-formulae
 
       - name: Upload bottles as artifact

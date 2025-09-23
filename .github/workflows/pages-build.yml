@@ -36,6 +36,7 @@ jobs:
           bundler-cache: true
 
       - name: Parse Formulae and Build Site
+        shell: bash
         run: |
           ruby scripts/parse_formulas.rb
           echo "Generated formulae.json with $(jq '.formulae | length' docs/_data/formulae.json) formulae"
