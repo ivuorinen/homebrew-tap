@@ -7,6 +7,8 @@ require "fileutils"
 require "erb"
 require "pathname"
 require "time"
+require "terser"
+require "cssminify2"
 
 # Simple polyfill for Homebrew extensions
 class Array
@@ -95,7 +97,7 @@ module AssetProcessor
     return unless File.exist?(css_path)
 
     css_content = File.read(css_path)
-    minified_css = minify_css(css_content)
+    minified_css = CSSminify2.compress(css_content)
     File.write(output_path, minified_css)
     puts "📄 Generated CSS file: #{output_path}"
   end
@@ -107,7 +109,7 @@ module AssetProcessor
     return unless File.exist?(js_path)
 
     js_content = File.read(js_path)
-    minified_js = JavaScriptMinifier.minify(js_content)
+    minified_js = Terser.new.compile(js_content)
     File.write(output_path, minified_js)
     puts "🔧 Generated JS file: #{output_path}"
   end
@@ -145,157 +147,6 @@ module AssetProcessor
 
     FileUtils.mkdir_p(File.dirname(output_file))
     FileUtils.cp(source_file, output_file)
-  end
-
-  def minify_css(css)
-    css.gsub(%r{/\*.*?\*/}m, "")
-       .gsub(/\s+/, " ")
-       .gsub(/;\s*}/, "}")
-       .strip
-  end
-end
-
-# Helper module for JavaScript character handling
-module JavaScriptCharacters
-  NEWLINE_CHARS = ["\n", "\r"].freeze
-  WHITESPACE_CHARS = [" ", "\t"].freeze
-  SPECIAL_CHARS = [";", "{", "}", "(", ")", ",", ":", "=", "+", "-", "*", "/", "%", "!", "&", "|", "^", "~", "<",
-                   ">", "?"].freeze
-end
-
-# Helper module for JavaScript comment and string processing
-module JavaScriptProcessor
-  include JavaScriptCharacters
-
-  private
-
-  def skip_line_comment(index)
-    index += 1 while index < javascript.length && javascript[index] != "\n"
-    index
-  end
-
-  def skip_block_comment(index)
-    index += 2
-    while index < javascript.length - 1
-      break if javascript[index] == "*" && javascript[index + 1] == "/"
-
-      index += 1
-    end
-    index + 2
-  end
-
-  def process_string_content(result, quote_char, index)
-    while index < javascript.length && javascript[index] != quote_char
-      result += javascript[index]
-      index += 1 if javascript[index] == "\\"
-      index += 1
-    end
-    index
-  end
-
-  def append_closing_quote(result, index)
-    result << javascript[index] if index < javascript.length
-  end
-
-  def skip_to_next_line(index)
-    index += 1 while index < javascript.length && NEWLINE_CHARS.include?(javascript[index])
-    index
-  end
-
-  def skip_whitespace(index)
-    index += 1 while index < javascript.length && WHITESPACE_CHARS.include?(javascript[index])
-    index
-  end
-
-  def preserve_space?(result)
-    return false if result.empty?
-
-    last_char = result[-1]
-    [";", "{", "}", "(", ")", ",", ":", "=", "+", "-", "*", "/", "%", "!", "&", "|", "^", "~", "<", ">",
-     "?"].exclude?(last_char)
-  end
-
-  attr_reader :javascript
-end
-
-# Class for JavaScript minification
-class JavaScriptMinifier
-  include JavaScriptProcessor
-
-  def self.minify(javascript)
-    new(javascript).minify
-  end
-
-  def initialize(javascript)
-    @javascript = javascript
-  end
-
-  def minify
-    remove_comments_and_whitespace
-  end
-
-  private
-
-  def remove_comments_and_whitespace
-    result = ""
-    i = 0
-
-    while i < javascript.length
-      char = javascript[i]
-
-      case char
-      when "/"
-        i = handle_slash(result, i)
-      when '"', "'"
-        i = handle_string_literal(result, char, i)
-      when "\n", "\r"
-        i = handle_newline(result, i)
-      when " ", "\t"
-        i = handle_whitespace(result, i)
-      else
-        result += char
-        i += 1
-      end
-    end
-
-    result
-  end
-
-  def handle_slash(_result, index)
-    if index + 1 < javascript.length
-      next_char = javascript[index + 1]
-      case next_char
-      when "/"
-        skip_line_comment(index)
-      when "*"
-        skip_block_comment(index)
-      else
-        javascript[index]
-        index + 1
-      end
-    else
-      javascript[index]
-      index + 1
-    end
-  end
-
-  def handle_string_literal(result, quote_char, index)
-    result += javascript[index]
-    index += 1
-
-    index = process_string_content(result, quote_char, index)
-    append_closing_quote(result, index)
-    index + 1
-  end
-
-  def handle_newline(result, index)
-    result << " " if preserve_space?(result)
-    skip_to_next_line(index)
-  end
-
-  def handle_whitespace(result, index)
-    result << " " if preserve_space?(result)
-    skip_whitespace(index)
   end
 end
 
