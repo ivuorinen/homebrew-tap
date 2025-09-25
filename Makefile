@@ -31,17 +31,36 @@ help: ## Show this help message
 
 build: ## Build the static documentation site
 	@echo "🏗️  Building homebrew tap documentation..."
-	@$(RUBY) $(SCRIPTS_DIR)/parse_formulas.rb
-	@$(RUBY) $(SCRIPTS_DIR)/build_site.rb
+	@if [ -f Gemfile ]; then \
+		RUBY_ABI_VERSION=$$($(RUBY) -e 'puts "#{RUBY_VERSION.split(".")[0]}.#{RUBY_VERSION.split(".")[1]}.0"'); \
+		export PATH="$$HOME/.local/share/gem/ruby/$$RUBY_ABI_VERSION/bin:$$PATH"; \
+		bundle exec $(RUBY) $(SCRIPTS_DIR)/parse_formulas.rb; \
+		bundle exec $(RUBY) $(SCRIPTS_DIR)/build_site.rb; \
+	else \
+		$(RUBY) $(SCRIPTS_DIR)/parse_formulas.rb; \
+		$(RUBY) $(SCRIPTS_DIR)/build_site.rb; \
+	fi
 	@echo "✅ Build complete!"
 
 serve: ## Start development server (default: localhost:4000)
 	@echo "🚀 Starting development server on http://$(HOST):$(PORT)"
-	@$(RUBY) $(SCRIPTS_DIR)/serve.rb $(PORT) $(HOST)
+	@if [ -f Gemfile ]; then \
+		RUBY_ABI_VERSION=$$($(RUBY) -e 'puts "#{RUBY_VERSION.split(".")[0]}.#{RUBY_VERSION.split(".")[1]}.0"'); \
+		export PATH="$$HOME/.local/share/gem/ruby/$$RUBY_ABI_VERSION/bin:$$PATH"; \
+		bundle exec $(RUBY) $(SCRIPTS_DIR)/serve.rb $(PORT) $(HOST); \
+	else \
+		$(RUBY) $(SCRIPTS_DIR)/serve.rb $(PORT) $(HOST); \
+	fi
 
 parse: ## Parse formulae and generate JSON data only
 	@echo "📋 Parsing formulae..."
-	@$(RUBY) $(SCRIPTS_DIR)/parse_formulas.rb
+	@if [ -f Gemfile ]; then \
+		RUBY_ABI_VERSION=$$($(RUBY) -e 'puts "#{RUBY_VERSION.split(".")[0]}.#{RUBY_VERSION.split(".")[1]}.0"'); \
+		export PATH="$$HOME/.local/share/gem/ruby/$$RUBY_ABI_VERSION/bin:$$PATH"; \
+		bundle exec $(RUBY) $(SCRIPTS_DIR)/parse_formulas.rb; \
+	else \
+		$(RUBY) $(SCRIPTS_DIR)/parse_formulas.rb; \
+	fi
 	@echo "✅ Formulae parsing complete!"
 
 clean: ## Clean all generated files
@@ -54,9 +73,25 @@ dev: parse build serve ## Full development workflow: parse, build, and serve
 setup: ## Initial project setup and dependency check
 	@echo "🔧 Setting up homebrew tap development environment..."
 	@which $(RUBY) > /dev/null || (echo "❌ Ruby not found. Please install Ruby first." && exit 1)
+	@echo "✅ Ruby found: $$($(RUBY) --version)"
 	@test -d $(FORMULA_DIR) || (echo "❌ Formula directory not found" && exit 1)
 	@test -d $(THEME_DIR) || (echo "❌ Theme directory not found" && exit 1)
 	@test -f $(THEME_DIR)/index.html.erb || (echo "❌ Theme templates not found" && exit 1)
+	@echo "📦 Installing Ruby dependencies..."
+	@if ! command -v bundle >/dev/null 2>&1; then \
+		echo "📥 Installing bundler..."; \
+		gem install bundler --user-install; \
+	fi
+	@if [ -f Gemfile ]; then \
+		echo "🔄 Running bundle install..."; \
+		RUBY_ABI_VERSION=$$($(RUBY) -e 'puts "#{RUBY_VERSION.split(".")[0]}.#{RUBY_VERSION.split(".")[1]}.0"'); \
+		(export PATH="$$HOME/.local/share/gem/ruby/$$RUBY_ABI_VERSION/bin:$$PATH" && \
+		 bundle config set path 'vendor/bundle' && \
+		 bundle install); \
+		echo "✅ Ruby dependencies installed!"; \
+	else \
+		echo "ℹ️  No Gemfile found, skipping dependency installation"; \
+	fi
 	@echo "✅ Environment setup complete!"
 
 check: ## Check if all required files and directories exist
@@ -81,7 +116,14 @@ test: check ## Run tests and validation
 install: ## Install development dependencies (if Gemfile exists)
 	@if [ -f Gemfile ]; then \
 		echo "📦 Installing Ruby dependencies..."; \
-		bundle install; \
+		if ! command -v bundle >/dev/null 2>&1; then \
+			echo "📥 Installing bundler..."; \
+			gem install bundler --user-install; \
+		fi; \
+		RUBY_ABI_VERSION=$$($(RUBY) -e 'puts "#{RUBY_VERSION.split(".")[0]}.#{RUBY_VERSION.split(".")[1]}.0"'); \
+		(export PATH="$$HOME/.local/share/gem/ruby/$$RUBY_ABI_VERSION/bin:$$PATH" && \
+		 bundle config set path 'vendor/bundle' && \
+		 bundle install); \
 		echo "✅ Dependencies installed!"; \
 	else \
 		echo "ℹ️  No Gemfile found, skipping dependency installation"; \
@@ -91,11 +133,12 @@ update: ## Update all gems to their latest versions (respecting Gemfile constrai
 	@if [ -f Gemfile ]; then \
 		echo "🔄 Updating Ruby dependencies..."; \
 		echo "📦 Running bundle update..."; \
-		bundle update; \
+		RUBY_ABI_VERSION=$$($(RUBY) -e 'puts "#{RUBY_VERSION.split(".")[0]}.#{RUBY_VERSION.split(".")[1]}.0"'); \
+		PATH="$$HOME/.local/share/gem/ruby/$$RUBY_ABI_VERSION/bin:$$PATH" bundle update; \
 		echo "✅ All gems updated to latest versions!"; \
 		echo ""; \
 		echo "💡 Current gem versions:"; \
-		bundle list | grep -E "^\s*\*" | head -10; \
+		PATH="$$HOME/.local/share/gem/ruby/$$RUBY_ABI_VERSION/bin:$$PATH" bundle list | grep -E "^\s*\*" | head -10; \
 	else \
 		echo "❌ No Gemfile found"; \
 		exit 1; \
@@ -110,7 +153,8 @@ update-bundler: ## Update bundler itself to the latest version
 outdated: ## Show outdated gems
 	@if [ -f Gemfile ]; then \
 		echo "📋 Checking for outdated gems..."; \
-		bundle outdated || true; \
+		RUBY_ABI_VERSION=$$($(RUBY) -e 'puts "#{RUBY_VERSION.split(".")[0]}.#{RUBY_VERSION.split(".")[1]}.0"'); \
+		PATH="$$HOME/.local/share/gem/ruby/$$RUBY_ABI_VERSION/bin:$$PATH" bundle outdated || true; \
 	else \
 		echo "❌ No Gemfile found"; \
 		exit 1; \

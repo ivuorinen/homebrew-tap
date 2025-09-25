@@ -56,13 +56,9 @@ jobs:
         shell: bash
         run: brew install-bundler-gems
 
-      - name: Install project gems
+      - name: Setup project dependencies
         shell: bash
-        run: |
-          export GEM_HOME="$HOME/.gem"
-          export PATH="$GEM_HOME/bin:$PATH"
-          gem install bundler --user-install
-          bundle install
+        run: make setup
 
       - name: Run brew test-bot (cleanup)
         shell: bash
