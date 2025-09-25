@@ -32,15 +32,13 @@ jobs:
 
       - name: Setup Ruby
         uses: ruby/setup-ruby@0481980f17b760ef6bca5e8c55809102a0af1e5a # v1.263.0
-        with:
-          bundler-cache: true
 
-      - name: Parse Formulae and Build Site
+      - name: Setup project dependencies and build site
         shell: bash
         run: |
-          ruby scripts/parse_formulas.rb
+          make setup
+          make build
           echo "Generated formulae.json with $(jq '.formulae | length' docs/_data/formulae.json) formulae"
-          ruby scripts/build_site.rb
 
       - name: Setup Pages
         id: pages
