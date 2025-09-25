@@ -51,12 +51,12 @@ make clean    # Clean all generated files
 
 **Development workflow:**
 ```bash
-make dev           # Full development workflow (parse + build + serve)
-make setup         # Check development environment setup
-make test          # Run validation tests
-make check         # Check project structure
-make install       # Install Ruby dependencies (if Gemfile exists)
-make info          # Show project information
+make setup          # Initial setup: install Ruby dependencies and bundler
+make dev            # Full development workflow (parse + build + serve)
+make test           # Run validation tests
+make check          # Check project structure
+make install        # Install Ruby dependencies (if Gemfile exists)
+make info           # Show project information
 ```
 
 **Server options:**
