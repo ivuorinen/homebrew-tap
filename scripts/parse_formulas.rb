@@ -11,7 +11,7 @@ require "date"
 class String
   def blank?
     # Polyfill implementation to avoid external dependencies
-    nil? || empty? # rubocop:disable Homebrew/Blank
+    nil? || empty? # rubocop:disable Homebrew/Blank, Lint/RedundantCopDisableDirective
   end
 end
 
