@@ -35,6 +35,22 @@ The CI will automatically validate your formula and update the documentation sit
 
 This tap uses a custom Ruby-based static site generator with zero external dependencies.
 
+### Quick Start
+
+For new contributors or first-time setup:
+
+```bash
+make setup    # Install Ruby dependencies and set up the environment
+make build    # Build the documentation site
+make serve    # Start development server
+```
+
+Or use the all-in-one development command:
+
+```bash
+make dev      # Full workflow: parse formulae, build site, and start server
+```
+
 ### Commands
 
 #### Using Make (Recommended)
