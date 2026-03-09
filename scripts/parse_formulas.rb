@@ -6,14 +6,7 @@ require "json"
 require "fileutils"
 require "pathname"
 require "date"
-
-# Simple polyfill for Homebrew extensions
-class String
-  def blank?
-    # Polyfill implementation to avoid external dependencies
-    nil? || empty? # rubocop:disable Homebrew/Blank, Lint/RedundantCopDisableDirective
-  end
-end
+require_relative "string_extensions"
 
 # Parser class for extracting metadata from Homebrew formulae
 class FormulaParser
