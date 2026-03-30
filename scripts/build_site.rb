@@ -5,7 +5,6 @@
 require "json"
 require "fileutils"
 require "erb"
-require "pathname"
 require "time"
 require "terser"
 require "cssminify2"
