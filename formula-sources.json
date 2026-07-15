@@ -1,0 +1,6 @@
+[
+  { "repo": "ivuorinen/a", "desc": "Encrypt and decrypt files with your SSH keys using the age format" },
+  { "repo": "ivuorinen/gh-action-readme", "desc": "Generate documentation for GitHub Actions with themes and multiple formats" },
+  { "repo": "ivuorinen/gh-history" },
+  { "repo": "ivuorinen/gh-calver" }
+]

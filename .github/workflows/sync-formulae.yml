@@ -1,0 +1,85 @@
+---
+name: Sync formulae from releases
+on:
+  schedule:
+    # Daily at 06:00 UTC.
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: sync-formulae
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Sync formulae
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write # commits and force-pushes the sync/formulae branch
+      pull-requests: write # opens/updates the automated sync PR via gh pr create
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@d45b1a4e94b71acab930e56e79c6aa188764e7f9 # v1.316.0
+
+      - name: Generate formulae from latest releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ruby scripts/sync_formulae.rb
+
+      - name: Detect changes
+        id: diff
+        run: |
+          # Stage first so brand-new (untracked) formulae count as changes too.
+          git add -A Formula
+          if git diff --cached --quiet -- Formula; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No formula changes."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git --no-pager diff --cached --stat -- Formula
+          fi
+
+      - name: Commit to sync branch
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # -B keeps the already-staged changes on the new branch.
+          git checkout -B sync/formulae
+          git commit -m "chore(formulae): sync from upstream releases"
+
+      # Validate the freshly generated formulae in-job (via the shared composite
+      # action), on the committed branch, so brew test-bot sees the diff. If this
+      # fails the job fails and no PR is opened.
+      - name: Validate generated formulae
+        if: steps.diff.outputs.changed == 'true'
+        uses: ./.github/actions/ci
+        with:
+          run-formulae: "true"
+
+      - name: Push branch and open or update PR
+        if: steps.diff.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Checkout runs with persist-credentials: false, so wire up git auth
+          # narrowly here, just before the one step in this job that pushes.
+          gh auth setup-git
+          # sync/formulae is a disposable bot-owned branch; force is intentional.
+          git push --force origin sync/formulae
+          if ! gh pr view sync/formulae >/dev/null 2>&1; then
+            gh pr create \
+              --base main \
+              --head sync/formulae \
+              --title "chore(formulae): sync from upstream releases" \
+              --body "Automated update of formulae from the latest GitHub releases of the repos in \`formula-sources.json\`. Validated in-job by \`brew test-bot\`."
+          fi

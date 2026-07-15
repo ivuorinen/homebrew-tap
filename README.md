@@ -23,7 +23,43 @@ Visit [https://ivuorinen.net/homebrew-tap/](https://ivuorinen.net/homebrew-tap/)
 - Source links and SHA256 checksums
 - Dark mode support with system preference detection
 
+## Automated formula sync
+
+Formulae are generated from upstream GitHub releases — the tap **pulls**, the
+tools don't push. The list of tracked repos lives in
+[`formula-sources.json`](formula-sources.json):
+
+```json
+[
+  { "repo": "ivuorinen/a", "desc": "Optional override for the audit-safe description" },
+  { "repo": "ivuorinen/gh-history" }
+]
+```
+
+Each entry needs only `repo`. Optional overrides: `desc` (when the auto-derived
+one reads badly), `license`, `bin` (binary name inside the archive), and `test`
+(the `test do` command).
+
+[`scripts/sync_formulae.rb`](scripts/sync_formulae.rb) asks the GitHub API (via
+`gh`) for each repo's latest release, matches the prebuilt binary assets to
+macOS/Linux × arm64/x86_64, and writes `Formula/<x>/<name>.rb`. `sha256` comes
+straight from the API's per-asset `digest`, so nothing is downloaded. Run it
+locally with:
+
+```bash
+make sync    # requires the gh CLI, authenticated
+```
+
+The [`Sync formulae from releases`](.github/workflows/sync-formulae.yml) workflow
+runs it daily (and on demand), validates the result in-job with `brew test-bot`
+(via the shared [`.github/actions/ci`](.github/actions/ci/action.yml) composite
+action, reused by CI), and opens a PR when anything changed.
+
 ## Contributing
+
+Most formulae are managed by the sync above — add the repo to
+`formula-sources.json` rather than hand-writing a formula. For a one-off manual
+formula:
 
 1. Fork this repository
 2. Create a new formula in the `Formula/` directory following the [Homebrew Formula Cookbook](https://docs.brew.sh/Formula-Cookbook)

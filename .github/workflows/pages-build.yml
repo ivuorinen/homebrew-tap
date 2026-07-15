@@ -10,7 +10,7 @@ on:
       - "theme/**"
   workflow_dispatch:
 
-permissions: read-all
+permissions: {}
 
 concurrency:
   group: pages
@@ -18,17 +18,19 @@ concurrency:
 
 jobs:
   build:
+    name: Build site
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pages: write
-      id-token: write
+      pages: write # required by actions/deploy-pages to publish the Pages deployment
+      id-token: write # required by actions/deploy-pages for OIDC authentication
 
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup Ruby
         uses: ruby/setup-ruby@d45b1a4e94b71acab930e56e79c6aa188764e7f9 # v1.316.0
@@ -50,6 +52,7 @@ jobs:
           path: docs
 
   deploy:
+    name: Deploy to Pages
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -58,8 +61,8 @@ jobs:
 
     permissions:
       contents: read
-      pages: write
-      id-token: write
+      pages: write # required by actions/deploy-pages to publish the Pages deployment
+      id-token: write # required by actions/deploy-pages for OIDC authentication
 
     steps:
       - name: Deploy to GitHub Pages
