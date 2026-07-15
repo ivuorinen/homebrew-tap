@@ -1,0 +1,81 @@
+---
+name: Validate tap
+description: >-
+  Set up Homebrew and Ruby, then run brew test-bot against the tap. Shared by
+  the CI and formula-sync workflows so their validation cannot drift apart.
+
+inputs:
+  run-formulae:
+    description: >-
+      Also build and test the real (non-example) formulae via
+      `brew test-bot --only-formulae`. Set "true" on PRs and on the sync run.
+    required: false
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    # Composite steps do not inherit the caller workflow's `env:`; export the
+    # Homebrew flags to $GITHUB_ENV so every later step (here and in the caller
+    # job) sees them.
+    - name: Configure Homebrew environment
+      shell: bash
+      run: |
+        {
+          echo "HOMEBREW_DEVELOPER=1"
+          echo "HOMEBREW_NO_AUTO_UPDATE=1"
+          echo "HOMEBREW_NO_ENV_HINTS=1"
+          # Tap trust enforcement (Homebrew/brew#22470) makes `brew doctor` fail
+          # in `brew test-bot` for the tap under test. Opt out to keep CI green.
+          # See https://github.com/Homebrew/brew/issues/22494
+          echo "HOMEBREW_NO_REQUIRE_TAP_TRUST=1"
+        } >> "$GITHUB_ENV"
+
+    - name: Setup Ruby
+      uses: ruby/setup-ruby@d45b1a4e94b71acab930e56e79c6aa188764e7f9 # v1.316.0
+      with:
+        bundler-cache: true
+
+    - name: Set up Homebrew
+      id: set-up-homebrew
+      uses: Homebrew/actions/setup-homebrew@18fcb8e3e06b4247c676c506750dc95ea7226479 # main
+
+    - name: Cache Homebrew Bundler RubyGems
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ steps.set-up-homebrew.outputs.gems-path }}
+        key: ${{ runner.os }}-rubygems-${{ steps.set-up-homebrew.outputs.gems-hash }}
+        restore-keys: ${{ runner.os }}-rubygems-
+
+    - name: Install Homebrew Bundler RubyGems
+      shell: bash
+      run: brew install-bundler-gems
+
+    - name: Setup project dependencies
+      shell: bash
+      run: make setup
+
+    - name: Run brew test-bot (cleanup)
+      shell: bash
+      run: brew test-bot --only-cleanup-before
+
+    - name: Run brew test-bot (setup)
+      shell: bash
+      run: brew test-bot --only-setup
+
+    - name: Run brew test-bot (tap syntax)
+      shell: bash
+      run: brew test-bot --only-tap-syntax
+
+    - name: Check for real formulae (non-examples)
+      id: check-formulae
+      shell: bash
+      run: |
+        REAL_FORMULAE=$(find Formula -name "*.rb" ! -name "example-*.rb" | wc -l | tr -d ' ')
+        echo "real_formulae_count=$REAL_FORMULAE" >> "$GITHUB_OUTPUT"
+        echo "Found $REAL_FORMULAE real formulae (excluding examples)"
+
+    - name: Run brew test-bot (formulae)
+      if: inputs.run-formulae == 'true' && steps.check-formulae.outputs.real_formulae_count > 0
+      shell: bash
+      run: brew test-bot --only-formulae

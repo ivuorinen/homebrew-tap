@@ -1,7 +1,7 @@
 # Homebrew Tap Makefile
 # Provides convenient commands for building and managing the tap documentation
 
-.PHONY: help build serve parse clean test install dev setup check lint update
+.PHONY: help build serve parse clean test install dev setup check lint update sync
 
 # Default target
 .DEFAULT_GOAL := help
@@ -41,6 +41,12 @@ build: ## Build the static documentation site
 		$(RUBY) $(SCRIPTS_DIR)/build_site.rb; \
 	fi
 	@echo "✅ Build complete!"
+
+sync: ## Generate/update formulae from the latest GitHub releases (needs gh)
+	@command -v gh >/dev/null || (echo "❌ gh (GitHub CLI) not found. Install it first." && exit 1)
+	@echo "🔄 Syncing formulae from upstream releases..."
+	@$(RUBY) $(SCRIPTS_DIR)/sync_formulae.rb
+	@echo "✅ Sync complete!"
 
 serve: ## Start development server (default: localhost:4000)
 	@echo "🚀 Starting development server on http://$(HOST):$(PORT)"
@@ -111,6 +117,8 @@ test: check ## Run tests and validation
 	@$(RUBY) -c $(SCRIPTS_DIR)/build_site.rb && echo "✅ build_site.rb syntax OK" || echo "❌ build_site.rb syntax error"
 	@$(RUBY) -c $(SCRIPTS_DIR)/serve.rb && echo "✅ serve.rb syntax OK" || echo "❌ serve.rb syntax error"
 	@$(RUBY) -c $(SCRIPTS_DIR)/make.rb && echo "✅ make.rb syntax OK" || echo "❌ make.rb syntax error"
+	@$(RUBY) -c $(SCRIPTS_DIR)/sync_formulae.rb && echo "✅ sync_formulae.rb syntax OK" || echo "❌ sync_formulae.rb syntax error"
+	@$(RUBY) $(SCRIPTS_DIR)/test_sync_formulae.rb
 	@echo "✅ All tests passed!"
 
 install: ## Install development dependencies (if Gemfile exists)
