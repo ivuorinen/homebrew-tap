@@ -10,10 +10,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-permissions: read-all
+permissions: {}
 
 jobs:
   test-bot:
+    name: Test bot
     strategy:
       fail-fast: false
       matrix:
@@ -22,14 +23,15 @@ jobs:
 
     permissions:
       contents: read
-      pull-requests: write
-      actions: read
+      pull-requests: write # brew test-bot posts style/audit annotations as PR review comments
+      actions: read # brew test-bot queries the Actions API for run/job context
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Validate tap
         uses: ./.github/actions/ci

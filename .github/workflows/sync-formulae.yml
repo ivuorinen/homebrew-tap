@@ -6,7 +6,7 @@ on:
     - cron: "0 6 * * *"
   workflow_dispatch:
 
-permissions: read-all
+permissions: {}
 
 concurrency:
   group: sync-formulae
@@ -14,16 +14,18 @@ concurrency:
 
 jobs:
   sync:
+    name: Sync formulae
     runs-on: ubuntu-24.04
     permissions:
-      contents: write
-      pull-requests: write
+      contents: write # commits and force-pushes the sync/formulae branch
+      pull-requests: write # opens/updates the automated sync PR via gh pr create
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup Ruby
         uses: ruby/setup-ruby@d45b1a4e94b71acab930e56e79c6aa188764e7f9 # v1.316.0
@@ -69,6 +71,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # Checkout runs with persist-credentials: false, so wire up git auth
+          # narrowly here, just before the one step in this job that pushes.
+          gh auth setup-git
           # sync/formulae is a disposable bot-owned branch; force is intentional.
           git push --force origin sync/formulae
           if ! gh pr view sync/formulae >/dev/null 2>&1; then
