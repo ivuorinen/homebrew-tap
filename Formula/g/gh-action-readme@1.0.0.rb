@@ -10,8 +10,8 @@ class GhActionReadmeAT100 < Formula
 
   on_macos do
     on_arm do
-      url "https://github.com/ivuorinen/gh-action-readme/releases/download/v1.0.0/gh-action-readme_Darwin_arm64.tar.gz"
-      sha256 "650146cde366320473762cf743251b27bf404b35fe76f515ee30dc61d3434654"
+      url "https://github.com/ivuorinen/gh-action-readme/archive/refs/tags/v1.1.0.tar.gz"
+      sha256 "80e944659a5d310ba4b850e746f3814ead7aa3b4d7d5b37c5c7dceb9163b8c80"
     end
     on_intel do
       url "https://github.com/ivuorinen/gh-action-readme/releases/download/v1.0.0/gh-action-readme_Darwin_x86_64.tar.gz"
