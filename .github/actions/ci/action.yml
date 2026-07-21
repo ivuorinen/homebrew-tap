@@ -76,11 +76,14 @@ runs:
         # collide on `brew link` within a single test-bot run; they are still
         # validated by --only-tap-syntax above (style + audit + loadability) and
         # each pins its sha256 from GitHub's API.
-        mapfile -t NAMES < <(find Formula -name '*.rb' ! -name '*@*.rb' -exec basename {} .rb \; | sort)
-        printf 'Will test: %s\n' "${NAMES[*]}"
+        # Space-separated (formula names have no spaces); portable to macOS
+        # bash 3.2, which lacks `mapfile`.
+        NAMES=$(find Formula -type f -name '*.rb' ! -name '*@*.rb' -exec basename {} .rb \; | sort | tr '\n' ' ')
+        set -- $NAMES
+        echo "Will test ($#): $NAMES"
         {
-          echo "count=${#NAMES[@]}"
-          echo "names=${NAMES[*]}"
+          echo "count=$#"
+          echo "names=$NAMES"
         } >> "$GITHUB_OUTPUT"
 
     - name: Run brew test-bot (formulae)
