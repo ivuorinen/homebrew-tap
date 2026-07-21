@@ -169,7 +169,7 @@ class TestSyncFormulae
     check("formula_body has explicit version (docs parser needs it)") { body.include?("version \"2026.03.4\"") }
     check("formula_body raw install uses stable.url basename") { body.include?("File.basename(stable.url)") }
     check("formula_body nests on_macos/on_arm") { body.include?("on_macos do") && body.include?("on_arm do") }
-    check("formula_body omits keg_only when not versioned") { !body.include?("keg_only") }
+    check("formula_body omits keg_only when not versioned") { body["keg_only"].nil? }
 
     # Versioned formula: brew's "@<digit>" -> "AT<digit>" class mangling + keg_only.
     vclass = SyncFormulae.class_name("gh-calver@2026.03.4")
