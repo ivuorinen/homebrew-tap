@@ -56,7 +56,10 @@ class FormulaParser
 
     return unless class_name
 
-    formula_name = convert_class_name_to_formula_name(class_name)
+    # The filename IS the Homebrew formula name (incl. "@version" for versioned
+    # formulae). Deriving it from the class name can't round-trip the versioned
+    # "AT<digits>" mangling, so use the basename directly.
+    formula_name = File.basename(file_path, ".rb")
 
     return if formula_name.blank?
 
@@ -105,15 +108,6 @@ class FormulaParser
 
   def extract_dependencies(content)
     content.scan(PATTERNS[:depends_on]).flatten.uniq
-  end
-
-  def convert_class_name_to_formula_name(class_name)
-    return unless class_name
-
-    # Convert CamelCase to kebab-case
-    class_name
-      .gsub(/([a-z\d])([A-Z])/, '\1-\2')
-      .downcase
   end
 
   def format_time_iso8601(time)

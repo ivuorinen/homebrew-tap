@@ -1,16 +1,12 @@
 ---
 name: Validate tap
 description: >-
-  Set up Homebrew and Ruby, then run brew test-bot against the tap. Shared by
-  the CI and formula-sync workflows so their validation cannot drift apart.
-
-inputs:
-  run-formulae:
-    description: >-
-      Also build and test the real (non-example) formulae via
-      `brew test-bot --only-formulae`. Set "true" on PRs and on the sync run.
-    required: false
-    default: "false"
+  Set up Homebrew and Ruby, then run `brew test-bot --only-tap-syntax` (style,
+  audit, and loadability) against the tap. Shared by the CI and formula-sync
+  workflows so their validation cannot drift apart. Install/bottle testing is
+  intentionally omitted: the tap ships many keg_only `@version` formulae that
+  share a bin and collide during a single test-bot install run, and each
+  formula pins its sha256 from GitHub's release API.
 
 runs:
   using: composite
@@ -66,16 +62,3 @@ runs:
     - name: Run brew test-bot (tap syntax)
       shell: bash
       run: brew test-bot --only-tap-syntax
-
-    - name: Check for real formulae (non-examples)
-      id: check-formulae
-      shell: bash
-      run: |
-        REAL_FORMULAE=$(find Formula -name "*.rb" ! -name "example-*.rb" | wc -l | tr -d ' ')
-        echo "real_formulae_count=$REAL_FORMULAE" >> "$GITHUB_OUTPUT"
-        echo "Found $REAL_FORMULAE real formulae (excluding examples)"
-
-    - name: Run brew test-bot (formulae)
-      if: inputs.run-formulae == 'true' && steps.check-formulae.outputs.real_formulae_count > 0
-      shell: bash
-      run: brew test-bot --only-formulae
