@@ -9,6 +9,7 @@ require "time"
 require "terser"
 require "cssminify2"
 require_relative "array_extensions"
+require_relative "string_extensions"
 require_relative "time_formatter"
 require_relative "asset_processor"
 
@@ -96,8 +97,8 @@ class SiteBuilder
   # formula. Templates keep reading @data["formulae"]/["formulae_count"], so only
   # this transform and the versions section on the formula page need to know.
   def group_formulae
-    all = Array(@data["formulae"]).select { |f| f.is_a?(Hash) }
-    mains, versioned = all.partition { |f| !f["name"].to_s.include?("@") }
+    all = Array(@data["formulae"]).grep(Hash)
+    mains, versioned = all.partition { |f| f["name"].to_s.exclude?("@") }
     by_base = versioned.group_by { |f| f["name"].to_s.split("@", 2).first }
 
     mains.each { |m| m["versions"] = sort_versions(by_base.delete(m["name"].to_s) || []) }
@@ -115,11 +116,9 @@ class SiteBuilder
   # ponytail: Gem::Version handles both semver and calver; unparseable → 0.
   def sort_versions(list)
     list.sort_by do |f|
-      begin
-        Gem::Version.new(f["version"].to_s)
-      rescue ArgumentError
-        Gem::Version.new("0")
-      end
+      Gem::Version.new(f["version"].to_s)
+    rescue ArgumentError
+      Gem::Version.new("0")
     end.reverse
   end
 

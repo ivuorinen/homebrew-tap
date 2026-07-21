@@ -7,4 +7,8 @@ class String
     # Polyfill implementation to avoid external dependencies
     nil? || empty? # rubocop:disable Homebrew/Blank, Lint/RedundantCopDisableDirective
   end
+
+  def exclude?(item)
+    !include?(item)
+  end
 end
