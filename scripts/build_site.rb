@@ -88,6 +88,39 @@ class SiteBuilder
   def load_data
     formulae_file = File.join(DATA_DIR, "formulae.json")
     @data = File.exist?(formulae_file) ? JSON.parse(File.read(formulae_file)) : default_data
+    group_formulae
+  end
+
+  # Collapse the flat formulae list (main + "name@version" entries) so the site
+  # shows one card/page per tool, with every version listed under its main
+  # formula. Templates keep reading @data["formulae"]/["formulae_count"], so only
+  # this transform and the versions section on the formula page need to know.
+  def group_formulae
+    all = Array(@data["formulae"]).select { |f| f.is_a?(Hash) }
+    mains, versioned = all.partition { |f| !f["name"].to_s.include?("@") }
+    by_base = versioned.group_by { |f| f["name"].to_s.split("@", 2).first }
+
+    mains.each { |m| m["versions"] = sort_versions(by_base.delete(m["name"].to_s) || []) }
+
+    # Versioned formulae with no plain main: synthesize a main from the newest.
+    by_base.each do |base, vers|
+      sorted = sort_versions(vers)
+      mains << sorted.first.merge("name" => base, "versions" => sorted)
+    end
+
+    @data["formulae"] = mains.sort_by { |m| m["name"].to_s.downcase }
+    @data["formulae_count"] = mains.length
+  end
+
+  # ponytail: Gem::Version handles both semver and calver; unparseable → 0.
+  def sort_versions(list)
+    list.sort_by do |f|
+      begin
+        Gem::Version.new(f["version"].to_s)
+      rescue ArgumentError
+        Gem::Version.new("0")
+      end
+    end.reverse
   end
 
   def generate_assets
