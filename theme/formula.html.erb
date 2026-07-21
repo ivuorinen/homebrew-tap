@@ -102,6 +102,26 @@
           </table>
         </div>
       </section>
+
+      <% versions = Array(@formula['versions']).select { |v| v.is_a?(Hash) } %>
+      <% if versions.any? %>
+      <section class="space-y-4">
+        <h2 class="text-2xl font-semibold tracking-tight px-8 h-10">Versions</h2>
+        <div class="space-y-4 px-8">
+          <% versions.each do |v| %>
+            <div class="space-y-2">
+              <div class="flex items-center gap-3">
+                <span class="badge inline-flex items-center rounded-full bg-emerald-500 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white dark:bg-emerald-400">v<%= h(v['version'].to_s) %></span>
+                <% if v['url'] %>
+                  <a href="<%= h(v['url'].to_s) %>" target="_blank" class="text-sm text-sky-600 transition hover:text-sky-500 dark:text-sky-400 dark:hover:text-sky-300">Download ↗</a>
+                <% end %>
+              </div>
+              <%= render_partial('command_input', command: "brew install #{h("#{tap_name}/#{v['name']}")}", size: 'sm', label: 'CLI') %>
+            </div>
+          <% end %>
+        </div>
+      </section>
+      <% end %>
     </main>
   </div>
 
