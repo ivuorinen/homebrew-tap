@@ -89,7 +89,8 @@ class TestSyncFormulae
 
   private
 
-  # Reverse of the docs parser (parse_formulas.rb#convert_class_name_to_formula_name).
+  # CamelCase -> kebab-case, to assert class_name() stays reversible for
+  # unversioned names (versioned "AT<digits>" names key off the filename instead).
   def class_to_formula(cls)
     cls.gsub(/([a-z\d])([A-Z])/, '\1-\2').downcase
   end
@@ -151,19 +152,32 @@ class TestSyncFormulae
     check("never selects windows/freebsd") { all_picked.none? { |n| n.match?(/windows|freebsd/i) } }
   end
 
-  def check_formula_body
-    meta = SyncFormulae.instance_eval do
+  def base_meta(keg_only:, formula_name:, klass:)
+    SyncFormulae.instance_eval do
       {
-        name: "gh-calver", class: class_name("gh-calver"), desc: "GitHub CLI calver command",
-        homepage: "https://github.com/ivuorinen/gh-calver", version: "2026.03.4", license: "MIT",
-        bin: "gh-calver", test: 'system bin/"gh-calver", "--help"', archive: false,
+        name: "gh-calver", formula_name: formula_name, class: klass, keg_only: keg_only,
+        desc: "GitHub CLI calver command", homepage: "https://github.com/ivuorinen/gh-calver",
+        version: "2026.03.4", license: "MIT", bin: "gh-calver",
+        test: 'system bin/"gh-calver", "--help"', archive: false,
         platforms: [{ os: "macos", arch: "arm", url: "https://x/gh-calver_darwin-arm64", sha256: "a" * 64 }]
       }
     end
-    body = SyncFormulae.formula_body(meta)
+  end
+
+  def check_formula_body
+    body = SyncFormulae.formula_body(base_meta(keg_only: false, formula_name: "gh-calver", klass: "GhCalver"))
     check("formula_body has explicit version (docs parser needs it)") { body.include?("version \"2026.03.4\"") }
     check("formula_body raw install uses stable.url basename") { body.include?("File.basename(stable.url)") }
     check("formula_body nests on_macos/on_arm") { body.include?("on_macos do") && body.include?("on_arm do") }
+    check("formula_body omits keg_only when not versioned") { !body.include?("keg_only") }
+
+    # Versioned formula: brew's "@<digit>" -> "AT<digit>" class mangling + keg_only.
+    vclass = SyncFormulae.class_name("gh-calver@2026.03.4")
+    check("class_name mangles versioned name") { vclass == "GhCalverAT2026034" }
+    vbody = SyncFormulae.formula_body(base_meta(keg_only: true, formula_name: "gh-calver@2026.03.4", klass: vclass))
+    check("versioned formula_body has keg_only :versioned_formula") { vbody.include?("keg_only :versioned_formula") }
+    check("versioned formula_body class is the mangled name") { vbody.include?("class GhCalverAT2026034 < Formula") }
+    check("versioned formula_body header uses the @ name") { vbody.include?("# gh-calver@2026.03.4 —") }
   end
 end
 

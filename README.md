@@ -41,10 +41,13 @@ one reads badly), `license`, `bin` (binary name inside the archive), and `test`
 (the `test do` command).
 
 [`scripts/sync_formulae.rb`](scripts/sync_formulae.rb) asks the GitHub API (via
-`gh`) for each repo's latest release, matches the prebuilt binary assets to
-macOS/Linux × arm64/x86_64, and writes `Formula/<x>/<name>.rb`. `sha256` comes
-straight from the API's per-asset `digest`, so nothing is downloaded. Run it
-locally with:
+`gh`) for **every release** of each repo, matches the prebuilt binary assets to
+macOS/Linux × arm64/x86_64, and writes one formula per version: the newest
+release becomes `Formula/<x>/<name>.rb`, and every release (including the newest)
+also becomes a `keg_only`, versioned `Formula/<x>/<name>@<version>.rb` you can
+install with `brew install <name>@<version>`. Releases without matching prebuilt
+binaries are skipped. `sha256` comes straight from the API's per-asset `digest`,
+so nothing is downloaded. Run it locally with:
 
 ```bash
 make sync    # requires the gh CLI, authenticated
