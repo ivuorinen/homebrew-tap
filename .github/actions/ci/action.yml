@@ -1,16 +1,12 @@
 ---
 name: Validate tap
 description: >-
-  Set up Homebrew and Ruby, then run brew test-bot against the tap. Shared by
-  the CI and formula-sync workflows so their validation cannot drift apart.
-
-inputs:
-  run-formulae:
-    description: >-
-      Also build and test the real (non-example) formulae via
-      `brew test-bot --only-formulae`. Set "true" on PRs and on the sync run.
-    required: false
-    default: "false"
+  Set up Homebrew and Ruby, then run `brew test-bot --only-tap-syntax` (style,
+  audit, and loadability) against the tap. Shared by the CI and formula-sync
+  workflows so their validation cannot drift apart. Install/bottle testing is
+  intentionally omitted: the tap ships many keg_only `@version` formulae that
+  share a bin and collide during a single test-bot install run, and each
+  formula pins its sha256 from GitHub's release API.
 
 runs:
   using: composite
@@ -66,27 +62,3 @@ runs:
     - name: Run brew test-bot (tap syntax)
       shell: bash
       run: brew test-bot --only-tap-syntax
-
-    - name: List current (unversioned) formulae
-      id: check-formulae
-      shell: bash
-      run: |
-        # Install/bottle-test only the unversioned "latest" formulae (one per
-        # tool). The keg_only @version formulae all ship the same bin and would
-        # collide on `brew link` within a single test-bot run; they are still
-        # validated by --only-tap-syntax above (style + audit + loadability) and
-        # each pins its sha256 from GitHub's API.
-        # Space-separated (formula names have no spaces); portable to macOS
-        # bash 3.2, which lacks `mapfile`.
-        NAMES=$(find Formula -type f -name '*.rb' ! -name '*@*.rb' -exec basename {} .rb \; | sort | tr '\n' ' ')
-        set -- $NAMES
-        echo "Will test ($#): $NAMES"
-        {
-          echo "count=$#"
-          echo "names=$NAMES"
-        } >> "$GITHUB_OUTPUT"
-
-    - name: Run brew test-bot (formulae)
-      if: inputs.run-formulae == 'true' && steps.check-formulae.outputs.count > 0
-      shell: bash
-      run: brew test-bot --only-formulae ${{ steps.check-formulae.outputs.names }}
