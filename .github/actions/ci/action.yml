@@ -67,15 +67,23 @@ runs:
       shell: bash
       run: brew test-bot --only-tap-syntax
 
-    - name: Check for real formulae (non-examples)
+    - name: List current (unversioned) formulae
       id: check-formulae
       shell: bash
       run: |
-        REAL_FORMULAE=$(find Formula -name "*.rb" ! -name "example-*.rb" | wc -l | tr -d ' ')
-        echo "real_formulae_count=$REAL_FORMULAE" >> "$GITHUB_OUTPUT"
-        echo "Found $REAL_FORMULAE real formulae (excluding examples)"
+        # Install/bottle-test only the unversioned "latest" formulae (one per
+        # tool). The keg_only @version formulae all ship the same bin and would
+        # collide on `brew link` within a single test-bot run; they are still
+        # validated by --only-tap-syntax above (style + audit + loadability) and
+        # each pins its sha256 from GitHub's API.
+        mapfile -t NAMES < <(find Formula -name '*.rb' ! -name '*@*.rb' -exec basename {} .rb \; | sort)
+        printf 'Will test: %s\n' "${NAMES[*]}"
+        {
+          echo "count=${#NAMES[@]}"
+          echo "names=${NAMES[*]}"
+        } >> "$GITHUB_OUTPUT"
 
     - name: Run brew test-bot (formulae)
-      if: inputs.run-formulae == 'true' && steps.check-formulae.outputs.real_formulae_count > 0
+      if: inputs.run-formulae == 'true' && steps.check-formulae.outputs.count > 0
       shell: bash
-      run: brew test-bot --only-formulae
+      run: brew test-bot --only-formulae ${{ steps.check-formulae.outputs.names }}
