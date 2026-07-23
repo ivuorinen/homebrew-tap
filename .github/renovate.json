@@ -1,4 +1,10 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["local>ivuorinen/renovate-config"]
+  "extends": ["local>ivuorinen/renovate-config"],
+  "packageRules": [
+    {
+      "matchFileNames": ["Formula/**/*@*.rb"],
+      "enabled": false
+    }
+  ]
 }
