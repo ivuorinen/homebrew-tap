@@ -10,4 +10,8 @@ end %>
   <% formulae_classes = [nav_base, (active_tab == :formulae ? nav_active : nil)].compact.join(' ') %>
   <a href="<%= h(href.call('index.html')) %>" class="<%= home_classes %>">Home</a>
   <a href="<%= h(href.call('formulae.html')) %>" class="<%= formulae_classes %>">All Formulae</a>
+  <button class="theme-toggle ml-auto inline-flex h-9 items-center gap-2 rounded-full border border-slate-300 bg-white/80 px-3 text-slate-600 shadow-sm transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500 dark:border-slate-600 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white" aria-label="Theme: Auto" tabindex="0">
+    <span class="theme-toggle-icon" aria-hidden="true">🌗</span>
+    <span class="theme-toggle-label">Auto</span>
+  </button>
 </nav>
