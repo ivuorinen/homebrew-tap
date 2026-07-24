@@ -1,0 +1,38 @@
+# Homebrew's own RuboCop config, vendored + a thin local overlay.
+#
+# .rubocop_homebrew.yml is copied verbatim from Homebrew/homebrew-core:
+#   curl -fsSL https://raw.githubusercontent.com/Homebrew/homebrew-core/main/.rubocop.yml \
+#     -o .rubocop_homebrew.yml
+# Re-run that to refresh it. It is pure standard-cop config (Layout/Lint/Naming/
+# Style), so it runs with plain `rubocop` — no brew required.
+#
+# NOT a full replica of `brew style`: that layers this on top of brew's internal
+# base config, which disables Metrics and loads the FormulaAudit/Cask/Homebrew
+# cops that only exist inside brew. CI (`brew test-bot --only-tap-syntax`) remains
+# the authority on the audit cops; the overlay below just replays the Metrics
+# disable so local lint is not stricter than CI.
+inherit_from: .rubocop_homebrew.yml
+
+inherit_mode:
+  merge:
+    - Exclude
+
+AllCops:
+  # Honor the Gemfile floor (ruby ">= 3.0.0"); the vendored file pins 4.0.
+  TargetRubyVersion: "3.0"
+  # The vendored config sets Include to ["**/*.rbi"] (it assumes brew's base
+  # config supplies the default **/*.rb). Restore it so our .rb files are linted.
+  Include:
+    - "**/*.rb"
+    - "Gemfile"
+  Exclude:
+    - "vendor/**/*"
+    - "site/**/*"
+    - "_site/**/*"
+    - "node_modules/**/*"
+
+# The vendored homebrew-core file configures no Metrics (that disable lives in
+# brew's internal base config). Replicate it so local lint is not stricter than
+# CI. Re-enable if you want tighter checks on scripts/.
+Metrics:
+  Enabled: false

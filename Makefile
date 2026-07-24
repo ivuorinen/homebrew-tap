@@ -197,9 +197,18 @@ tap-install: ## Install this tap locally for testing
 	@echo "🍺 Installing tap locally..."
 	@brew tap $$(pwd)
 
-lint: ## Lint all Ruby scripts
-	@echo "🔍 Linting Ruby scripts..."
-	@brew style --fix --reset-cache .
+lint: ## Lint Ruby (RuboCop, no brew needed). Formula audit still runs in CI via brew.
+	@echo "🔍 Linting Ruby with RuboCop..."
+	@bundle exec rubocop
+
+lint-fix: ## Auto-correct safe RuboCop offenses
+	@echo "🔧 Auto-correcting RuboCop offenses..."
+	@bundle exec rubocop -A
+
+lint-update-config: ## Refresh vendored Homebrew RuboCop config from homebrew-core
+	@echo "⬇️  Updating .rubocop_homebrew.yml from Homebrew/homebrew-core..."
+	@curl -fsSL https://raw.githubusercontent.com/Homebrew/homebrew-core/main/.rubocop.yml -o .rubocop_homebrew.yml
+	@echo "✅ Updated. Run 'make lint' to check for new offenses."
 
 formula-new: ## Create a new formula template (usage: make formula-new NAME=myformula)
 	@if [ -z "$(NAME)" ]; then \
