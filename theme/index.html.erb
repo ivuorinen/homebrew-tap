@@ -25,10 +25,12 @@
 
         <div class="formula-grid grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           <%
-            # Sort formulae by last_modified date (most recent first) and take top 6
+            # Sort by version release date (most recent first) and take top 6.
+            # Fall back to last_modified for formulae not yet re-synced with a
+            # release date, so the section stays populated during the transition.
             sorted_formulae = Array(@data['formulae'])
               .select { |f| f.is_a?(Hash) && f['last_modified'] }
-              .sort_by { |f| f['last_modified'] }
+              .sort_by { |f| f['released_at'] || f['last_modified'] }
               .reverse
               .first(6)
 

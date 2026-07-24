@@ -15,14 +15,15 @@ class FormulaParser
 
   # Regex patterns for safe extraction without code evaluation
   PATTERNS = {
-    class_name: /^class\s+(\w+)\s+<\s+Formula/,
-    desc:       /^\s*desc\s+["']([^"']+)["']/,
-    homepage:   /^\s*homepage\s+["']([^"']+)["']/,
-    url:        /^\s*url\s+["']([^"']+)["']/,
-    version:    /^\s*version\s+["']([^"']+)["']/,
-    sha256:     /^\s*sha256\s+["']([a-f0-9]{64})["']/i,
-    license:    /^\s*license\s+["']([^"']+)["']/,
-    depends_on: /^\s*depends_on\s+["']([^"']+)["']/,
+    class_name:  /^class\s+(\w+)\s+<\s+Formula/,
+    desc:        /^\s*desc\s+["']([^"']+)["']/,
+    homepage:    /^\s*homepage\s+["']([^"']+)["']/,
+    url:         /^\s*url\s+["']([^"']+)["']/,
+    version:     /^\s*version\s+["']([^"']+)["']/,
+    sha256:      /^\s*sha256\s+["']([a-f0-9]{64})["']/i,
+    license:     /^\s*license\s+["']([^"']+)["']/,
+    depends_on:  /^\s*depends_on\s+["']([^"']+)["']/,
+    released_at: /^#\s*released:\s*(\S+)/,
   }.freeze
 
   def self.run
@@ -81,6 +82,7 @@ class FormulaParser
       license:       extract_value(content, :license),
       dependencies:  extract_dependencies(content),
       file_path:     calculate_relative_path(file_path),
+      released_at:   extract_value(content, :released_at),
       last_modified: format_time_iso8601(File.mtime(file_path)),
     }
   end

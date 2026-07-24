@@ -157,7 +157,7 @@ class TestSyncFormulae
       {
         name: "gh-calver", formula_name: formula_name, class: klass, keg_only: keg_only,
         desc: "GitHub CLI calver command", homepage: "https://github.com/ivuorinen/gh-calver",
-        version: "2026.03.4", license: "MIT", bin: "gh-calver",
+        version: "2026.03.4", released_at: "2026-03-04T12:00:00Z", license: "MIT", bin: "gh-calver",
         test: 'system bin/"gh-calver", "--help"', archive: false,
         platforms: [{ os: "macos", arch: "arm", url: "https://x/gh-calver_darwin-arm64", sha256: "a" * 64 }]
       }
@@ -170,6 +170,11 @@ class TestSyncFormulae
     check("formula_body raw install uses stable.url basename") { body.include?("File.basename(stable.url)") }
     check("formula_body nests on_macos/on_arm") { body.include?("on_macos do") && body.include?("on_arm do") }
     check("formula_body omits keg_only when not versioned") { body["keg_only"].nil? }
+    check("formula_body embeds the release date comment") { body.include?("# released: 2026-03-04T12:00:00Z") }
+
+    # The parse_formulas regex must recover exactly what formula_body emits.
+    released = body[/^#\s*released:\s*(\S+)/, 1]
+    check("parse_formulas regex round-trips the release date") { released == "2026-03-04T12:00:00Z" }
 
     # Versioned formula: brew's "@<digit>" -> "AT<digit>" class mangling + keg_only.
     vclass = SyncFormulae.class_name("gh-calver@2026.03.4")

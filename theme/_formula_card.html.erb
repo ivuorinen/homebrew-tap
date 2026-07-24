@@ -5,7 +5,7 @@
 # Optional parameters:
 # - show_homepage: Show homepage link (default: false)
 # - show_dependencies: Show dependency badges (default: false)
-# - show_last_modified: Show last modified time (default: false)
+# - show_last_modified: Show the version's release date (default: false)
 
 formula_name = formula['name'].to_s
 return if formula_name.empty?
@@ -33,9 +33,9 @@ show_last_modified = respond_to?(:show_last_modified) ? self.show_last_modified 
     <% end %>
   </header>
 
-  <% if show_last_modified && formula['last_modified'] %>
+  <% if show_last_modified && formula['released_at'] %>
   <div class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-    <span>Updated <%= format_relative_time(formula['last_modified']) %></span>
+    <time datetime="<%= h(formula['released_at']) %>" title="<%= h(format_datetime(formula['released_at'])) %>">Released <%= format_date(formula['released_at']) %></time>
   </div>
   <% end %>
 
