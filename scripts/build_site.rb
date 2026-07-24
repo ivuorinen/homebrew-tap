@@ -42,6 +42,10 @@ class SiteBuilder
       @builder.format_date(timestamp)
     end
 
+    def format_datetime(timestamp)
+      @builder.format_datetime(timestamp)
+    end
+
     def binding_context
       binding
     end
