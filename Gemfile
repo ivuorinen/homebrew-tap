@@ -10,5 +10,6 @@ gem "terser", "~> 1.2"
 
 # dev dependencies
 group :development do
+  gem "rubocop", "~> 1.81", require: false
   gem "webrick", "~> 1.9"
 end

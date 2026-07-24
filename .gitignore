@@ -1,5 +1,4 @@
 # Ruby
-Gemfile.lock
 .bundle/
 vendor/bundle/
 .ruby-lsp/
