@@ -1,71 +1,75 @@
-// Dark mode toggle functionality
+// Theme toggle: cycles auto -> light -> dark -> auto. Auto follows the OS.
 (() => {
   const STORAGE_KEY = "theme";
+  const ORDER = ["auto", "light", "dark"];
+  const ICONS = { auto: "🌗", light: "☀️", dark: "🌙" };
+  const LABELS = { auto: "Auto", light: "Light", dark: "Dark" };
 
-  function getStoredTheme() {
+  function getMode() {
+    let mode = null;
     try {
-      return localStorage.getItem(STORAGE_KEY);
+      mode = localStorage.getItem(STORAGE_KEY);
     } catch {
-      return null;
+      // Ignore storage failures
     }
+    return ORDER.includes(mode) ? mode : "auto";
   }
 
-  function setStoredTheme(theme) {
+  function setMode(mode) {
     try {
-      localStorage.setItem(STORAGE_KEY, theme);
+      localStorage.setItem(STORAGE_KEY, mode);
     } catch {
       // Ignore storage failures
     }
   }
 
-  function getSystemTheme() {
+  function resolve(mode) {
+    if (mode !== "auto") return mode;
     return window.matchMedia?.("(prefers-color-scheme: dark)").matches
       ? "dark"
       : "light";
   }
 
-  function getCurrentTheme() {
-    return getStoredTheme() || getSystemTheme() || "light";
-  }
+  function apply(mode) {
+    const theme = resolve(mode);
+    const root = document.documentElement;
+    root.classList.toggle("dark", theme === "dark");
+    root.classList.toggle("light", theme !== "dark");
+    root.setAttribute("data-theme", theme);
 
-  function applyTheme(theme) {
-    document.documentElement.classList.toggle("dark", theme === "dark");
     const toggle = document.querySelector(".theme-toggle");
     if (toggle) {
-      toggle.innerHTML = theme === "dark" ? "☀️" : "🌙";
-      toggle.setAttribute(
-        "aria-label",
-        theme === "dark" ? "Switch to light mode" : "Switch to dark mode",
-      );
+      const icon = toggle.querySelector(".theme-toggle-icon");
+      const label = toggle.querySelector(".theme-toggle-label");
+      if (icon) icon.textContent = ICONS[mode];
+      if (label) label.textContent = LABELS[mode];
+      toggle.setAttribute("aria-label", `Theme: ${LABELS[mode]}`);
     }
   }
 
-  function toggleTheme() {
-    const currentTheme = getCurrentTheme();
-    const newTheme = currentTheme === "dark" ? "light" : "dark";
-    setStoredTheme(newTheme);
-    applyTheme(newTheme);
+  function cycleTheme() {
+    const next = ORDER[(ORDER.indexOf(getMode()) + 1) % ORDER.length];
+    setMode(next);
+    apply(next);
   }
 
-  // Watch for system theme changes
-  const mediaQuery = window.matchMedia?.("(prefers-color-scheme: dark)");
-  mediaQuery?.addEventListener("change", (e) => {
-    if (!getStoredTheme()) {
-      applyTheme(e.matches ? "dark" : "light");
-    }
-  });
+  // Re-resolve when the OS theme changes while we're following it
+  window.matchMedia?.("(prefers-color-scheme: dark)").addEventListener(
+    "change",
+    () => {
+      if (getMode() === "auto") apply("auto");
+    },
+  );
 
-  // Theme toggle click handler
   document.addEventListener("click", (e) => {
     if (e.target.closest(".theme-toggle")) {
       e.preventDefault();
-      toggleTheme();
+      cycleTheme();
     }
   });
 
-  // Initialize theme
-  applyTheme(getCurrentTheme());
-  window.toggleTheme = toggleTheme;
+  apply(getMode());
+  window.cycleTheme = cycleTheme;
 })();
 
 // Click-to-copy functionality for command inputs
