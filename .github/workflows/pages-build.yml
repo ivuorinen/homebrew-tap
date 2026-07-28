@@ -3,11 +3,20 @@ name: Build and Deploy Documentation
 on:
   push:
     branches: [main]
+    # Explicit on purpose: only files the site build actually reads. Do not widen
+    # back to "scripts/**" (sync/serve/test scripts never touch the site) or add
+    # "docs/**" (gitignored build output plus plan docs). Adding Gemfile.lock or
+    # the workflow file makes every Renovate bump republish for nothing.
+    # No brace expansion here — GitHub path filters do not support "{a,b}".
     paths:
       - "Formula/**"
-      - "docs/**"
-      - "scripts/**"
       - "theme/**"
+      - "scripts/build_site.rb"
+      - "scripts/parse_formulas.rb"
+      - "scripts/asset_processor.rb"
+      - "scripts/array_extensions.rb"
+      - "scripts/string_extensions.rb"
+      - "scripts/time_formatter.rb"
   workflow_dispatch:
 
 permissions: {}
