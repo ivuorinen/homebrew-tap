@@ -27,13 +27,20 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Setup Ruby
-        uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1.321.0
-
-      - name: Generate formulae from latest releases
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: ruby scripts/sync_formulae.rb
+      # Generation happens *inside* this action, between test-bot's cleanup and
+      # its syntax check. It cannot happen in an earlier step of this job:
+      # `Homebrew/actions/setup-homebrew` symlinks the tap into
+      # $GITHUB_WORKSPACE and re-clones it at origin/main, which discards both
+      # the generated formulae and any branch committed before it. That is what
+      # made this job fail with "src refspec sync/formulae does not match any"
+      # while test-bot silently validated main's formulae instead of the new
+      # ones. If this fails the job fails and no PR is opened.
+      # Ruby and bundler come from the action; no separate setup-ruby needed.
+      - name: Generate and validate formulae
+        uses: ./.github/actions/ci
+        with:
+          sync-formulae: "true"
+          gh-token: ${{ github.token }}
 
       - name: Detect changes
         id: diff
@@ -56,13 +63,6 @@ jobs:
           # -B keeps the already-staged changes on the new branch.
           git checkout -B sync/formulae
           git commit -m "chore(formulae): sync from upstream releases"
-
-      # Validate the freshly generated formulae in-job (via the shared composite
-      # action: brew style + audit + loadability). If this fails the job fails
-      # and no PR is opened.
-      - name: Validate generated formulae
-        if: steps.diff.outputs.changed == 'true'
-        uses: ./.github/actions/ci
 
       - name: Push branch and open or update PR
         if: steps.diff.outputs.changed == 'true'
