@@ -4,7 +4,6 @@
 class GhHistoryAT2026030 < Formula
   desc "GitHub CLI history command"
   homepage "https://github.com/ivuorinen/gh-history"
-  version "2026.03.0"
   license "MIT"
   keg_only :versioned_formula
 

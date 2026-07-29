@@ -4,7 +4,6 @@
 class GhCalver < Formula
   desc "GitHub CLI calver command"
   homepage "https://github.com/ivuorinen/gh-calver"
-  version "2026.03.4"
   license "MIT"
 
   on_macos do

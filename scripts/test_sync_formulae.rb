@@ -159,14 +159,27 @@ class TestSyncFormulae
         desc: "GitHub CLI calver command", homepage: "https://github.com/ivuorinen/gh-calver",
         version: "2026.03.4", released_at: "2026-03-04T12:00:00Z", license: "MIT", bin: "gh-calver",
         test: 'system bin/"gh-calver", "--help"', archive: false,
-        platforms: [{ os: "macos", arch: "arm", url: "https://x/gh-calver_darwin-arm64", sha256: "a" * 64 }]
+        # Real release-asset URL shape: the tag in the path is now the only
+        # carrier of the version, so the fixture must not elide it.
+        platforms: [{ os: "macos", arch: "arm",
+                      url: "https://github.com/ivuorinen/gh-calver/releases/download/2026.03.4/gh-calver_darwin-arm64",
+                      sha256: "a" * 64 }]
       }
     end
   end
 
   def check_formula_body
     body = SyncFormulae.formula_body(base_meta(keg_only: false, formula_name: "gh-calver", klass: "GhCalver"))
-    check("formula_body has explicit version (docs parser needs it)") { body.include?("version \"2026.03.4\"") }
+    # `brew audit` rejects an explicit version when the URL already yields it.
+    check("formula_body omits explicit version (brew audit rejects it)") do
+      body.match?(/^\s*version\s/).!
+    end
+    # ...so the version must stay recoverable from the URL, which is how both
+    # Homebrew and parse_formulas.rb#extract_version get it now.
+    check("version is recoverable from the asset URL") do
+      url = body[/^\s*url "([^"]+)"/, 1]
+      url && url.match(/v?(\d+(?:\.\d+)+)/)&.[](1) == "2026.03.4"
+    end
     check("formula_body raw install uses stable.url basename") { body.include?("File.basename(stable.url)") }
     check("formula_body nests on_macos/on_arm") { body.include?("on_macos do") && body.include?("on_arm do") }
     check("formula_body omits keg_only when not versioned") { body["keg_only"].nil? }

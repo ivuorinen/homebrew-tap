@@ -102,7 +102,10 @@ module SyncFormulae
     lines << "class #{meta[:class]} < Formula"
     lines << %Q(  desc "#{meta[:desc]}")
     lines << %Q(  homepage "#{meta[:homepage]}")
-    lines << %Q(  version "#{meta[:version]}")
+    # No explicit `version`: every asset URL carries the tag, so Homebrew scans
+    # the version off it and `brew audit` rejects restating it ("Stable:
+    # `version X` is redundant with version scanned from URL"). The docs site
+    # recovers it the same way, via parse_formulas.rb's URL fallback.
     lines << %Q(  license "#{meta[:license]}") if meta[:license]
     lines << "  keg_only :versioned_formula" if meta[:keg_only]
     lines << ""

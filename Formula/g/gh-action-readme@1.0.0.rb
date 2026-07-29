@@ -4,7 +4,6 @@
 class GhActionReadmeAT100 < Formula
   desc "Generate documentation for GitHub Actions with themes and multiple formats"
   homepage "https://github.com/ivuorinen/gh-action-readme"
-  version "1.0.0"
   license "MIT"
   keg_only :versioned_formula
 
