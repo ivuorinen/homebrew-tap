@@ -4,7 +4,6 @@
 class A < Formula
   desc "Encrypt and decrypt files with your SSH keys using the age format"
   homepage "https://github.com/ivuorinen/a"
-  version "1.0.0"
   license "MIT"
 
   on_macos do

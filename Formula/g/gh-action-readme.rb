@@ -4,7 +4,6 @@
 class GhActionReadme < Formula
   desc "Generate documentation for GitHub Actions with themes and multiple formats"
   homepage "https://github.com/ivuorinen/gh-action-readme"
-  version "1.1.0"
   license "MIT"
 
   on_macos do

@@ -4,7 +4,6 @@
 class GhCalverAT010 < Formula
   desc "GitHub CLI calver command"
   homepage "https://github.com/ivuorinen/gh-calver"
-  version "0.1.0"
   license "MIT"
   keg_only :versioned_formula
 
