@@ -8,6 +8,21 @@ description: >-
   share a bin and collide during a single test-bot install run, and each
   formula pins its sha256 from GitHub's release API.
 
+inputs:
+  sync-formulae:
+    description: >-
+      Regenerate Formula/ from upstream releases before the syntax check, so
+      test-bot validates the generated formulae. Must happen here rather than in
+      the calling job: `Homebrew/actions/setup-homebrew` symlinks the tap to
+      $GITHUB_WORKSPACE and re-clones it at origin/main, discarding anything the
+      job wrote beforehand -- including generated formulae and local commits.
+      A fixed command rather than a caller-supplied one, to keep untrusted text
+      out of `run:`.
+    default: "false"
+  gh-token:
+    description: Token for the `gh` calls in sync_formulae.rb. Required when sync-formulae is true.
+    default: ""
+
 runs:
   using: composite
   steps:
@@ -58,6 +73,15 @@ runs:
     - name: Run brew test-bot (setup)
       shell: bash
       run: brew test-bot --only-setup
+
+    # After cleanup (which runs `git clean -ff -dx` on the tap) and before the
+    # syntax check, so the generated formulae are what gets validated.
+    - name: Generate formulae from latest releases
+      if: inputs.sync-formulae == 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.gh-token }}
+      run: ruby scripts/sync_formulae.rb
 
     - name: Run brew test-bot (tap syntax)
       shell: bash
