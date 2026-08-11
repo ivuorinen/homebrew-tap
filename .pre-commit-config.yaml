@@ -21,6 +21,17 @@ repos:
         require_serial: true
         exclude: ^(docs/|vendor/|bin/|tmp/|\.git/|node_modules/)
 
+      # Reopening a Ruby core class collides with the definitions brew loads
+      # (String#blank?, String#exclude?, …), and `brew style` fails the tap with
+      # Lint/DuplicateMethods. Plain `rubocop` can't see those definitions, so it
+      # never catches it locally — hence the grep. Use stdlib at the call site.
+      - id: no-core-class-reopen
+        name: No Ruby core-class monkey patching
+        language: pygrep
+        types: [ruby]
+        exclude: ^Formula/
+        entry: '^class\s+(String|Array|Hash|Integer|Float|Numeric|Symbol|Range|Time|Object|Kernel|Module|Class|Struct|Regexp|Proc|Exception|IO|File|Dir|Set|Comparable|Enumerable|NilClass|TrueClass|FalseClass)\s*$'
+
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v4.0.0-alpha.8
     hooks:

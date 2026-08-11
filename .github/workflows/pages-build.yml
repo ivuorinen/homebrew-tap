@@ -14,8 +14,6 @@ on:
       - "scripts/build_site.rb"
       - "scripts/parse_formulas.rb"
       - "scripts/asset_processor.rb"
-      - "scripts/array_extensions.rb"
-      - "scripts/string_extensions.rb"
       - "scripts/time_formatter.rb"
   workflow_dispatch:
 
