@@ -100,7 +100,10 @@ class SiteBuilder
   # this transform and the versions section on the formula page need to know.
   def group_formulae
     all = Array(@data["formulae"]).grep(Hash)
-    mains, versioned = all.partition { |f| !f["name"].to_s.include?("@") }
+    # Positive predicate on purpose: brew's Homebrew/NegateInclude cop rejects
+    # `!include?`, and its suggested `exclude?` only exists inside brew's Ruby —
+    # these scripts also run standalone under plain `ruby`. Swap the sides instead.
+    versioned, mains = all.partition { |f| f["name"].to_s.include?("@") }
     by_base = versioned.group_by { |f| f["name"].to_s.split("@", 2).first }
 
     mains.each { |m| m["versions"] = sort_versions(by_base.delete(m["name"].to_s) || []) }
