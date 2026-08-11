@@ -5,7 +5,6 @@
 require "json"
 require "fileutils"
 require "date"
-require_relative "string_extensions"
 
 # Parser class for extracting metadata from Homebrew formulae
 class FormulaParser
@@ -62,7 +61,7 @@ class FormulaParser
     # "AT<digits>" mangling, so use the basename directly.
     formula_name = File.basename(file_path, ".rb")
 
-    return if formula_name.blank?
+    return if formula_name.empty?
 
     build_formula_metadata(content, file_path, formula_name, class_name)
   rescue => e
