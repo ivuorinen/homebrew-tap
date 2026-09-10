@@ -36,10 +36,6 @@ runs:
           echo "HOMEBREW_DEVELOPER=1"
           echo "HOMEBREW_NO_AUTO_UPDATE=1"
           echo "HOMEBREW_NO_ENV_HINTS=1"
-          # Tap trust enforcement (Homebrew/brew#22470) makes `brew doctor` fail
-          # in `brew test-bot` for the tap under test. Opt out to keep CI green.
-          # See https://github.com/Homebrew/brew/issues/22494
-          echo "HOMEBREW_NO_REQUIRE_TAP_TRUST=1"
         } >> "$GITHUB_ENV"
 
     - name: Setup Ruby
@@ -50,6 +46,14 @@ runs:
     - name: Set up Homebrew
       id: set-up-homebrew
       uses: Homebrew/actions/setup-homebrew@18fcb8e3e06b4247c676c506750dc95ea7226479 # 2026.07.13.1
+
+    # Tap trust enforcement (Homebrew/brew#22470) makes `brew doctor` fail in
+    # `brew test-bot` for the tap under test, so trust it explicitly. The runner
+    # is ephemeral, and `test-bot --only-cleanup-before` leaves the trust store
+    # alone (it lives outside HOMEBREW_PREFIX/HOMEBREW_REPOSITORY).
+    - name: Trust this tap
+      shell: bash
+      run: brew trust --tap ivuorinen/tap
 
     - name: Cache Homebrew Bundler RubyGems
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
