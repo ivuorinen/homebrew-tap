@@ -5,7 +5,7 @@ source "https://rubygems.org"
 ruby ">= 3.0.0"
 
 gem "cssminify2", "~> 2.0"
-gem "json", "~> 2.7"
+gem "json", "~> 3.0"
 gem "terser", "~> 1.2"
 
 # dev dependencies
