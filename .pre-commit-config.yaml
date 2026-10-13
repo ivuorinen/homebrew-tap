@@ -1,3 +1,7 @@
+# Vendored verbatim from homebrew-core (`make lint-update-config`); hooks must
+# not rewrite it, or it drifts from upstream until the next refresh.
+exclude: ^\.rubocop_homebrew\.yml$
+
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
