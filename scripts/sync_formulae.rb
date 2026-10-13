@@ -36,6 +36,9 @@ module SyncFormulae
   EXCLUDE_EXT  = /\.(sbom\.json|json|deb|rpm|apk|sig|pem|txt|bundle|zip|exe|msi|asc)\z/i
   EXCLUDE_WORD = /(?:\A|[_.-])(?:windows|freebsd|386|i386)(?:[_.-]|\z)/i
 
+  # Raised when a repo or release cannot be turned into a formula.
+  class Error < StandardError; end
+
   module_function
 
   # Homebrew Formulary.class_s-compatible name mangling:
@@ -83,7 +86,7 @@ module SyncFormulae
 
   def digest_sha256(digest)
     m = digest.to_s.match(/\Asha256:([a-f0-9]{64})\z/i)
-    raise "asset digest is not sha256: #{digest.inspect}" unless m
+    raise Error, "asset digest is not sha256: #{digest.inspect}" unless m
 
     m[1].downcase
   end
@@ -156,7 +159,7 @@ module SyncFormulae
 
   def gh_json(*path)
     out, err, status = Open3.capture3("gh", "api", *path)
-    raise "gh api #{path.join(" ")} failed: #{err.strip}" unless status.success?
+    raise Error, "gh api #{path.join(" ")} failed: #{err.strip}" unless status.success?
 
     JSON.parse(out)
   end
@@ -179,7 +182,7 @@ module SyncFormulae
     return if platforms.empty?
 
     archives = platforms.map { |pl| pl[:archive] }.uniq
-    raise "#{name} #{version} mixes archive and raw assets; add a `bin`/override" if archives.size > 1
+    raise Error, "#{name} #{version} mixes archive and raw assets; add a `bin`/override" if archives.size > 1
 
     {
       name:        name,
@@ -211,7 +214,7 @@ module SyncFormulae
       warn "! #{repo} #{release["tag_name"]}: #{e.message}"
       nil
     end
-    raise "no releases with matching binary assets for #{repo}" if metas.empty?
+    raise Error, "no releases with matching binary assets for #{repo}" if metas.empty?
 
     metas
   end
