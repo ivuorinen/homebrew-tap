@@ -12,26 +12,31 @@ require_relative "sync_formulae"
 class TestSyncFormulae
   FAKE = "sha256:#{"a" * 64}".freeze
 
+  # Seed repo names reused across fixtures and checks.
+  ACTION_README = "gh-action-readme"
+  HISTORY       = "gh-history"
+  CALVER        = "gh-calver"
+
   def self.asset(name)
     { "name" => name, "browser_download_url" => "https://example/#{name}", "digest" => FAKE }
   end
 
   # Recorded asset-name shapes (the divergent conventions we must handle).
   FIXTURES = {
-    "a"                => %w[
+    "a"           => %w[
       a_1.0.0_darwin_amd64 a_1.0.0_darwin_amd64.tar.gz a_1.0.0_darwin_amd64.tar.gz.sbom.json
       a_1.0.0_darwin_arm64 a_1.0.0_darwin_arm64.tar.gz
       a_1.0.0_linux_386 a_1.0.0_linux_386.tar.gz a_1.0.0_linux_amd64 a_1.0.0_linux_amd64.deb
       a_1.0.0_linux_amd64.tar.gz a_1.0.0_linux_arm64 a_1.0.0_linux_arm64.tar.gz
       a_1.0.0_freebsd_amd64.tar.gz a_1.0.0_windows_amd64.zip
     ].map { |n| asset(n) },
-    "gh-action-readme" => %w[
+    ACTION_README => %w[
       checksums.txt gh-action-readme_Darwin_arm64.tar.gz gh-action-readme_Darwin_arm64.tar.gz.sbom.json
       gh-action-readme_Darwin_x86_64.tar.gz gh-action-readme_Linux_arm64.tar.gz
       gh-action-readme_Linux_i386.tar.gz gh-action-readme_Linux_x86_64.tar.gz
       gh-action-readme_Windows_x86_64.zip
     ].map { |n| asset(n) },
-    "gh-history"       => %w[
+    HISTORY       => %w[
       gh-history_2026.03.0_checksums.txt gh-history_2026.03.0_checksums.txt.bundle
       gh-history_darwin-amd64 gh-history_darwin-arm64 gh-history_linux-amd64 gh-history_linux-arm64
       gh-history_windows-amd64.exe
@@ -39,7 +44,7 @@ class TestSyncFormulae
   }.freeze
 
   EXPECTED = {
-    "a"                => {
+    "a"           => {
       archive: true,
       picks:   {
         %w[macos arm]   => "a_1.0.0_darwin_arm64.tar.gz",
@@ -48,7 +53,7 @@ class TestSyncFormulae
         %w[linux intel] => "a_1.0.0_linux_amd64.tar.gz",
       },
     },
-    "gh-action-readme" => {
+    ACTION_README => {
       archive: true,
       picks:   {
         %w[macos arm]   => "gh-action-readme_Darwin_arm64.tar.gz",
@@ -57,7 +62,7 @@ class TestSyncFormulae
         %w[linux intel] => "gh-action-readme_Linux_x86_64.tar.gz",
       },
     },
-    "gh-history"       => {
+    HISTORY       => {
       archive: false,
       picks:   {
         %w[macos arm]   => "gh-history_darwin-arm64",
@@ -102,13 +107,13 @@ class TestSyncFormulae
   end
 
   def check_class_name_round_trips
-    %w[a gh-action-readme gh-history gh-calver].each do |name|
+    ["a", ACTION_README, HISTORY, CALVER].each do |name|
       cls = SyncFormulae.class_name(name)
       check("class_name(#{name}) -> #{cls} round-trips") { class_to_formula(cls) == name }
     end
     check("class_name(a) == A") { SyncFormulae.class_name("a") == "A" }
     check("class_name(gh-action-readme) == GhActionReadme") do
-      SyncFormulae.class_name("gh-action-readme") == "GhActionReadme"
+      SyncFormulae.class_name(ACTION_README) == "GhActionReadme"
     end
   end
 
@@ -155,9 +160,9 @@ class TestSyncFormulae
   def base_meta(keg_only:, formula_name:, klass:)
     SyncFormulae.instance_eval do
       {
-        name: "gh-calver", formula_name: formula_name, class: klass, keg_only: keg_only,
+        name: CALVER, formula_name: formula_name, class: klass, keg_only: keg_only,
         desc: "GitHub CLI calver command", homepage: "https://github.com/ivuorinen/gh-calver",
-        version: "2026.03.4", released_at: "2026-03-04T12:00:00Z", license: "MIT", bin: "gh-calver",
+        version: "2026.03.4", released_at: "2026-03-04T12:00:00Z", license: "MIT", bin: CALVER,
         test: 'system bin/"gh-calver", "--help"', archive: false,
         # Real release-asset URL shape: the tag in the path is now the only
         # carrier of the version, so the fixture must not elide it.
@@ -169,7 +174,7 @@ class TestSyncFormulae
   end
 
   def check_formula_body
-    body = SyncFormulae.formula_body(base_meta(keg_only: false, formula_name: "gh-calver", klass: "GhCalver"))
+    body = SyncFormulae.formula_body(base_meta(keg_only: false, formula_name: CALVER, klass: "GhCalver"))
     # `brew audit` rejects an explicit version when the URL already yields it.
     check("formula_body omits explicit version (brew audit rejects it)") do
       body.match?(/^\s*version\s/).!

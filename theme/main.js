@@ -35,7 +35,7 @@
     const root = document.documentElement;
     root.classList.toggle("dark", theme === "dark");
     root.classList.toggle("light", theme !== "dark");
-    root.setAttribute("data-theme", theme);
+    root.dataset.theme = theme;
 
     const toggle = document.querySelector(".theme-toggle");
     if (toggle) {
@@ -54,12 +54,11 @@
   }
 
   // Re-resolve when the OS theme changes while we're following it
-  window.matchMedia?.("(prefers-color-scheme: dark)").addEventListener(
-    "change",
-    () => {
+  window
+    .matchMedia?.("(prefers-color-scheme: dark)")
+    .addEventListener("change", () => {
       if (getMode() === "auto") apply("auto");
-    },
-  );
+    });
 
   document.addEventListener("click", (e) => {
     if (e.target.closest(".theme-toggle")) {
@@ -129,8 +128,7 @@
     haystack = haystack.toLowerCase();
 
     let j = 0;
-    for (let i = 0; i < needle.length; i++) {
-      const char = needle[i];
+    for (const char of needle) {
       j = haystack.indexOf(char, j);
       if (j === -1) return false;
       j++;

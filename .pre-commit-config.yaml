@@ -1,3 +1,7 @@
+# Vendored verbatim from homebrew-core (`make lint-update-config`); hooks must
+# not rewrite it, or it drifts from upstream until the next refresh.
+exclude: ^\.rubocop_homebrew\.yml$
+
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
@@ -12,9 +16,12 @@ repos:
 
   - repo: local
     hooks:
+      # Skipped where brew is absent: prek aborts every hook when an entry's
+      # executable is missing. CI still enforces it via `brew test-bot
+      # --only-tap-syntax`.
       - id: brew-style
         name: Brew Style
-        entry: brew style --fix --reset-cache .
+        entry: sh -c 'if ! command -v brew >/dev/null 2>&1; then echo "brew not found, skipping brew style"; exit 0; fi; exec brew style --fix --reset-cache .'
         language: system
         types: [ruby]
         pass_filenames: false

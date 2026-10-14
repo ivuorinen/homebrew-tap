@@ -4,7 +4,10 @@
 <% tap_name = raw_tap_name.empty? ? 'ivuorinen/tap' : raw_tap_name %>
 <% formula_name = @formula['name'].to_s %>
 <% name = h("#{tap_name}/#{formula_name}") %>
-<%= render_partial('head', title: "#{formula_name} - #{tap_name}", style_path: '../style.css') %>
+<head>
+<%= render_partial('head', style_path: '../style.css') %>
+  <title><%= h("#{formula_name} - #{tap_name}") %></title>
+</head>
 <body class="min-h-screen bg-slate-50 text-slate-900 transition-colors duration-200 dark:bg-slate-950 dark:text-slate-100">
   <div class="mx-auto flex min-h-screen max-w-6xl flex-col gap-12 px-6 py-10">
     <%= render_partial('header', tap_name: name, description: @formula['description'].to_s, active_page: :formulae, base_path: '../') %>
@@ -92,6 +95,7 @@
                       type="text"
                       readonly
                       value="<%= h(@formula['sha256'].to_s) %>"
+                      aria-label="SHA256 checksum"
                       onclick="this.select()"
                       class="w-full bg-slate-50 dark:bg-slate-800 px-3 py-1.5 font-mono text-xs text-slate-800 dark:text-slate-200 rounded-lg border border-slate-200 dark:border-slate-600 cursor-pointer appearance-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-400 dark:focus-visible:outline-sky-300 focus-visible:outline-offset-[-2px]"
                     >
