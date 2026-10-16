@@ -74,10 +74,27 @@ jobs:
           gh auth setup-git
           # sync/formulae is a disposable bot-owned branch; force is intentional.
           git push --force origin sync/formulae
-          if ! gh pr view sync/formulae >/dev/null 2>&1; then
+          # Only an *open* PR counts: `gh pr view <branch>` also matches merged
+          # and closed PRs from this reused branch, which would skip creation.
+          if [ -z "$(gh pr list --head sync/formulae --state open --json number --jq '.[0].number')" ]; then
             gh pr create \
               --base main \
               --head sync/formulae \
               --title "chore(formulae): sync from upstream releases" \
               --body "Automated update of formulae from all GitHub releases (one keg_only \`@version\` formula per release, plus the unversioned latest) of the repos in \`formula-sources.json\`. Validated in-job by \`brew test-bot\`."
+          fi
+
+      # Runs after the PR step so the repos that synced still get their PR.
+      - name: Report repos that failed to sync
+        env:
+          FAILURES: ${{ runner.temp }}/sync-failures.txt
+        run: |
+          if [ -s "$FAILURES" ]; then
+            {
+              echo "## Repos that failed to sync"
+              echo
+              sed 's/^/- /' "$FAILURES"
+            } >> "$GITHUB_STEP_SUMMARY"
+            cat "$FAILURES"
+            exit 1
           fi

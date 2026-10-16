@@ -1,13 +1,10 @@
 #!/usr/bin/env ruby
-# typed: strict
 # frozen_string_literal: true
 
 require "json"
 require "fileutils"
 require "erb"
 require "time"
-require "terser"
-require "cssminify2"
 require_relative "time_formatter"
 require_relative "asset_processor"
 
@@ -30,10 +27,6 @@ class SiteBuilder
 
     def render_partial(name, locals = {})
       @builder.render_partial(name, locals)
-    end
-
-    def format_relative_time(timestamp)
-      @builder.format_relative_time(timestamp)
     end
 
     def format_date(timestamp)
@@ -88,9 +81,14 @@ class SiteBuilder
     exit 1
   end
 
+  # formulae.json is the parse stage's output and the only source of the data,
+  # tap_name included. A missing file is a usage error, not an empty tap: the
+  # former fallback rendered a zero-formula site under a second, wrong tap name.
   def load_data
     formulae_file = File.join(DATA_DIR, "formulae.json")
-    @data = File.exist?(formulae_file) ? JSON.parse(File.read(formulae_file)) : default_data
+    abort "❌ #{formulae_file} not found; run scripts/parse_formulas.rb first" unless File.exist?(formulae_file)
+
+    @data = JSON.parse(File.read(formulae_file))
     group_formulae
   end
 
@@ -175,15 +173,6 @@ class SiteBuilder
     %w[index.html.erb formulae.html.erb formula.html.erb].all? do |template|
       File.exist?(File.join(TEMPLATES_DIR, template))
     end
-  end
-
-  def default_data
-    {
-      "tap_name"       => "ivuorinen/homebrew-tap",
-      "generated_at"   => Time.now.strftime("%Y-%m-%dT%H:%M:%S%z"),
-      "formulae_count" => 0,
-      "formulae"       => [],
-    }
   end
 end
 
