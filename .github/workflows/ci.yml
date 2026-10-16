@@ -35,3 +35,28 @@ jobs:
 
       - name: Validate tap
         uses: ./.github/actions/ci
+
+  # No path filter: a dependency bump (e.g. json 3) can break the site build
+  # without touching any file pages-build.yml watches, and only fails at deploy.
+  site:
+    name: Build site and run tests
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0
+        with:
+          bundler-cache: true
+
+      - name: Run tests
+        run: make test
+
+      - name: Build site
+        run: make build

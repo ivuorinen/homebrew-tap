@@ -1,12 +1,11 @@
 #!/usr/bin/env ruby
-# typed: strict
 # frozen_string_literal: true
 
 # Pull-based formula generator.
 #
 # Reads formula-sources.json, asks the GitHub API (via `gh`) for each repo's
-# latest release + metadata, matches the prebuilt binary assets to Homebrew's
-# platforms, and (re)writes Formula/<x>/<name>.rb. sha256 comes from the API's
+# releases + metadata, matches the prebuilt binary assets to Homebrew's
+# platforms, and (re)writes Formula/<x>/<name>[@<ver>].rb. sha256 comes from the API's
 # per-asset `digest` field, so nothing is downloaded.
 #
 # `gh` is used for auth (GH_TOKEN / gh auth) and is present on the CI runner.
@@ -94,6 +93,11 @@ module SyncFormulae
   # meta: formula_name, class, keg_only (bool), desc, homepage, version,
   #       released_at (nil ok), license (nil ok), bin, test,
   #       platforms => [{ os, arch, url, sha256 }], archive (bool)
+  #
+  # Every value that came from the GitHub API or the sources file is emitted
+  # with String#inspect, never interpolated into a hand-written "...": a `"` in
+  # a repo description would end the literal (SyntaxError when brew loads the
+  # tap), and a `#{...}` in one would run as code. inspect escapes both.
   def formula_body(meta)
     lines = []
     lines << "# frozen_string_literal: true"
@@ -103,23 +107,23 @@ module SyncFormulae
     # Homebrew ignores comments. Its version's GitHub release publish time.
     lines << "# released: #{meta[:released_at]}" if meta[:released_at]
     lines << "class #{meta[:class]} < Formula"
-    lines << %Q(  desc "#{meta[:desc]}")
-    lines << %Q(  homepage "#{meta[:homepage]}")
+    lines << "  desc #{meta[:desc].inspect}"
+    lines << "  homepage #{meta[:homepage].inspect}"
     # No explicit `version`: every asset URL carries the tag, so Homebrew scans
     # the version off it and `brew audit` rejects restating it ("Stable:
     # `version X` is redundant with version scanned from URL"). The docs site
     # recovers it the same way, via parse_formulas.rb's URL fallback.
-    lines << %Q(  license "#{meta[:license]}") if meta[:license]
+    lines << "  license #{meta[:license].inspect}" if meta[:license]
     lines << "  keg_only :versioned_formula" if meta[:keg_only]
     lines << ""
     lines.concat(platform_blocks(meta[:platforms]))
     lines << ""
     lines << "  def install"
     lines << if meta[:archive]
-      %Q(    bin.install "#{meta[:bin]}")
+      "    bin.install #{meta[:bin].inspect}"
     else
       # raw binary: staged filename == the platform's asset name
-      %Q(    bin.install File.basename(stable.url) => "#{meta[:bin]}")
+      "    bin.install File.basename(stable.url) => #{meta[:bin].inspect}"
     end
     lines << "  end"
     lines << ""
@@ -145,8 +149,8 @@ module SyncFormulae
         next unless slot
 
         lines << "    on_#{arch} do"
-        lines << %Q(      url "#{slot[:url]}")
-        lines << %Q(      sha256 "#{slot[:sha256]}")
+        lines << "      url #{slot[:url].inspect}"
+        lines << "      sha256 #{slot[:sha256].inspect}"
         lines << "    end"
       end
       lines << "  end"
@@ -186,37 +190,51 @@ module SyncFormulae
 
     {
       name:        name,
+      tag:         release["tag_name"],
       version:     version,
       released_at: release["published_at"],
       desc:        source["desc"] || sanitize_desc(info["description"]),
       homepage:    "https://github.com/#{source["repo"]}",
       license:     source["license"] || spdx(info),
       bin:         source["bin"] || name,
-      test:        source["test"] || %Q(system bin/"#{source["bin"] || name}", "--help"),
+      test:        source["test"] || %Q(system bin/#{(source["bin"] || name).inspect}, "--help"),
       archive:     archives.first,
       platforms:   platforms,
     }
   end
 
-  # All release metas for a repo, newest first. Per-release failures are logged
-  # and skipped so one bad release never drops the rest.
+  # All release metas for a repo, plus the tag of its latest release.
+  #
+  # "Latest" is GitHub's own: `releases/latest` excludes drafts and prereleases
+  # and honours the "Set as latest" flag. Taking the first row of the release
+  # list instead let a prerelease, or a backport published after the current
+  # release, become the unversioned formula.
+  #
+  # A failing older release is warned about and skipped, so one bad release
+  # never drops the rest. A failing latest release raises: skipping it would
+  # silently leave the unversioned formula on the previous version.
   def build_metas(source)
     repo = source["repo"]
     name = repo.split("/").last
     info = gh_json("repos/#{repo}")
-    # Newest first. Drafts are not published versions; skip them.
+    latest_tag = gh_json("repos/#{repo}/releases/latest")["tag_name"]
+    # Drafts and prereleases are not published versions; skip them.
     # ponytail: newest 100 releases (per_page cap); add --paginate if a repo exceeds 100.
-    releases = gh_json("repos/#{repo}/releases?per_page=100").reject { |r| r["draft"] }
+    releases = gh_json("repos/#{repo}/releases?per_page=100").reject { |r| r["draft"] || r["prerelease"] }
 
     metas = releases.filter_map do |release|
       build_release_meta(source, name, info, release)
     rescue => e
+      raise if release["tag_name"] == latest_tag
+
       warn "! #{repo} #{release["tag_name"]}: #{e.message}"
       nil
     end
-    raise Error, "no releases with matching binary assets for #{repo}" if metas.empty?
+    unless metas.any? { |m| m[:tag] == latest_tag }
+      raise Error, "latest release #{latest_tag} of #{repo} has no matching binary assets"
+    end
 
-    metas
+    [metas, latest_tag]
   end
 
   # A release meta -> the formula file(s) it produces: always a keg_only
@@ -244,16 +262,22 @@ module SyncFormulae
     id if id && id != "NOASSERTION"
   end
 
+  # Sync every source; a failing repo keeps its existing formulae and is
+  # reported, but does not stop the repos that succeeded from being written.
+  #
+  # Exits 1 when any repo failed, unless SYNC_FAILURES_FILE is set and at least
+  # one repo synced: then the failures go to that file and the run exits 0, so
+  # CI can still open the sync PR for the good repos and fail afterwards.
   def run
     sources = JSON.parse(File.read(SOURCES))
     failures = []
     changed  = []
 
     sources.each do |source|
-      repo  = source["repo"]
-      metas = build_metas(source)
-      metas.each_with_index do |meta, idx|
-        outputs_for(meta, latest: idx.zero?).each do |file|
+      repo = source["repo"]
+      metas, latest_tag = build_metas(source)
+      metas.each do |meta|
+        outputs_for(meta, latest: meta[:tag] == latest_tag).each do |file|
           old = File.exist?(file[:path]) ? File.read(file[:path]) : nil
           next if old == file[:body]
 
@@ -267,14 +291,17 @@ module SyncFormulae
     rescue => e
       # Skip this repo; its existing formulae are left untouched.
       warn "! #{repo}: #{e.message}"
-      failures << repo
+      failures << "#{repo}: #{e.message}"
     end
 
     puts changed.empty? ? "\nNo formula changes." : "\nChanged:\n#{changed.map { |c| "  #{c}" }.join("\n")}"
     return if failures.empty?
 
-    warn "\nFailed: #{failures.join(", ")}"
-    exit 1
+    warn "\nFailed:\n#{failures.map { |f| "  #{f}" }.join("\n")}"
+    failures_file = ENV.fetch("SYNC_FAILURES_FILE", "")
+    exit 1 if failures_file.empty? || failures.size == sources.size
+
+    File.write(failures_file, "#{failures.join("\n")}\n")
   end
 end
 

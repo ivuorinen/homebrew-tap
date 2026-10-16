@@ -71,6 +71,13 @@
   window.cycleTheme = cycleTheme;
 })();
 
+// Visible feedback is not announced to screen readers (WCAG 4.1.3), so every
+// result also goes to the page's role="status" live region from _footer.
+function announce(message) {
+  const status = document.getElementById("status");
+  if (status) status.textContent = message;
+}
+
 // Click-to-copy functionality for command inputs
 (() => {
   async function copyToClipboard(input) {
@@ -104,13 +111,16 @@
     }, 1500);
   }
 
-  // Setup copy handlers using event delegation
+  // Setup copy handlers using event delegation. The data-copy marker is never
+  // removed, so every click copies; copyToClipboard selects the text itself.
   document.addEventListener("click", async (e) => {
-    const input = e.target.closest('input[readonly][onclick*="select"]');
+    const input = e.target.closest("input[data-copy]");
     if (input) {
-      input.removeAttribute("onclick");
       const success = await copyToClipboard(input);
       showCopyFeedback(input, success);
+      announce(
+        success ? "Copied to clipboard" : "Text selected; press Ctrl+C to copy",
+      );
     }
   });
 })();
@@ -139,14 +149,17 @@
   function performSearch() {
     const searchTerm = searchInput.value.trim();
     const cards = document.querySelectorAll(".formula-card");
+    let visible = 0;
 
     cards.forEach((card) => {
       const text = `${card.querySelector("h3")?.textContent || ""} ${
         card.querySelector("p")?.textContent || ""
       }`;
-      card.style.display =
-        !searchTerm || fuzzyMatch(searchTerm, text) ? "" : "none";
+      const match = !searchTerm || fuzzyMatch(searchTerm, text);
+      card.style.display = match ? "" : "none";
+      if (match) visible++;
     });
+    announce(`${visible} of ${cards.length} formulae shown`);
   }
   searchInput.addEventListener("input", () => {
     clearTimeout(searchTimeout);

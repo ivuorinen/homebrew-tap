@@ -16,12 +16,13 @@ repos:
 
   - repo: local
     hooks:
-      # Skipped where brew is absent: prek aborts every hook when an entry's
-      # executable is missing. CI still enforces it via `brew test-bot
-      # --only-tap-syntax`.
+      # Where brew is absent, falls back to plain RuboCop with the vendored
+      # Homebrew config (prek aborts every hook when an entry's executable is
+      # missing, so brew cannot be the entry itself). That lacks brew's audit
+      # cops; CI still enforces those via `brew test-bot --only-tap-syntax`.
       - id: brew-style
         name: Brew Style
-        entry: sh -c 'if ! command -v brew >/dev/null 2>&1; then echo "brew not found, skipping brew style"; exit 0; fi; exec brew style --fix --reset-cache .'
+        entry: sh -c 'if command -v brew >/dev/null 2>&1; then exec brew style --fix --reset-cache .; fi; echo "brew not found, running bundle exec rubocop -A instead"; exec bundle exec rubocop -A'
         language: system
         types: [ruby]
         pass_filenames: false

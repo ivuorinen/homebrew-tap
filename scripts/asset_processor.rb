@@ -1,9 +1,8 @@
-# typed: strict
 # frozen_string_literal: true
 
 require "fileutils"
 require "terser"
-require "cssminify2"
+require "tailwindcss/ruby"
 
 # Module for processing and copying assets
 module AssetProcessor
@@ -15,15 +14,17 @@ module AssetProcessor
     copy_asset_files
   end
 
+  # Compile Tailwind at build time so the pages ship a static, versioned
+  # stylesheet instead of loading the Play CDN, which Tailwind documents as
+  # development-only and which ran unpinned third-party script on every page.
   def generate_css
     css_path = File.join(THEME_SOURCE_DIR, "style.css")
     output_path = File.join(OUTPUT_DIR, "style.css")
 
     return unless File.exist?(css_path)
 
-    css_content = File.read(css_path)
-    minified_css = CSSminify2.compress(css_content)
-    File.write(output_path, minified_css)
+    system(Tailwindcss::Ruby.executable, "--input", css_path, "--output", output_path,
+           "--minify", "--silent", exception: true)
     puts "📄 Generated CSS file: #{output_path}"
   end
 

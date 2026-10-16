@@ -42,12 +42,14 @@ one reads badly), `license`, `bin` (binary name inside the archive), and `test`
 
 [`scripts/sync_formulae.rb`](scripts/sync_formulae.rb) asks the GitHub API (via
 `gh`) for **every release** of each repo, matches the prebuilt binary assets to
-macOS/Linux × arm64/x86_64, and writes one formula per version: the newest
-release becomes `Formula/<x>/<name>.rb`, and every release (including the newest)
-also becomes a `keg_only`, versioned `Formula/<x>/<name>@<version>.rb` you can
-install with `brew install <name>@<version>`. Releases without matching prebuilt
-binaries are skipped. `sha256` comes straight from the API's per-asset `digest`,
-so nothing is downloaded. Run it locally with:
+macOS/Linux × arm64/x86_64, and writes one formula per version: the repo's
+latest release (GitHub's `releases/latest`, so never a draft or prerelease)
+becomes `Formula/<x>/<name>.rb`, and every published release (including the
+latest) also becomes a `keg_only`, versioned `Formula/<x>/<name>@<version>.rb`
+you can install with `brew install <name>@<version>`. Older releases without
+matching prebuilt binaries are skipped; a latest release without them fails
+that repo. `sha256` comes straight from the API's per-asset `digest`, so nothing
+is downloaded. Run it locally with:
 
 ```bash
 make sync    # requires the gh CLI, authenticated
@@ -56,7 +58,10 @@ make sync    # requires the gh CLI, authenticated
 The [`Sync formulae from releases`](.github/workflows/sync-formulae.yml) workflow
 runs it daily (and on demand), validates the result in-job with `brew test-bot`
 (via the shared [`.github/actions/ci`](.github/actions/ci/action.yml) composite
-action, reused by CI), and opens a PR when anything changed.
+action, reused by CI), and opens a PR when anything changed. A repo that fails
+to sync keeps its existing formulae and does not block the others: the PR still
+opens for the repos that synced, and the run then fails, listing the failures
+in its job summary.
 
 ## Contributing
 
@@ -72,7 +77,9 @@ The CI will automatically validate your formula and update the documentation sit
 
 ## Development
 
-This tap uses a custom Ruby-based static site generator with zero external dependencies.
+This tap uses a custom Ruby-based static site generator. Prerequisites: Ruby
+(see `.ruby-version`), Bundler, the gems in `Gemfile` (`make setup` installs
+them), and a JavaScript runtime (Node.js or Bun) for terser's JS minification.
 
 ### Quick Start
 
@@ -106,11 +113,11 @@ make clean    # Clean all generated files
 
 **Development workflow:**
 ```bash
-make setup          # Initial setup: install Ruby dependencies and bundler
+make setup          # Initial setup: check project structure, install Ruby dependencies
 make dev            # Full development workflow (parse + build + serve)
-make test           # Run validation tests
+make test           # Syntax-check the scripts and run the offline tests
 make check          # Check project structure
-make install        # Install Ruby dependencies (if Gemfile exists)
+make install        # Install Ruby dependencies
 make info           # Show project information
 ```
 
@@ -126,7 +133,7 @@ make watch                       # Alias for serve with auto-rebuild
 
 **Homebrew-specific targets:**
 ```bash
-make tap-test                    # Test tap installation locally
+make tap-test                    # Audit the tap as CI does (brew test-bot)
 make tap-install                 # Install this tap locally
 make formula-new NAME=tool-name  # Create new formula template
 ```
@@ -137,31 +144,20 @@ make build-production  # Clean build for production deployment
 make version          # Show version information
 ```
 
-All Makefile targets include helpful status messages and error handling.
+A target fails as soon as any of its commands fails.
 
 **File Watching and Auto-Rebuild:**
 
-The development server (`make serve`) includes intelligent file watching that:
-- ✅ Only watches source files (Formula/, theme/, scripts/, config files)
-- ✅ Excludes generated output files to prevent infinite rebuild loops
-- ✅ Includes debouncing to handle multiple rapid file changes
-- ✅ Provides clear status messages for rebuild operations
+The development server (`make serve`) polls the source files once a second and
+rebuilds after a one-second debounce. Each rebuild runs the parse and build
+scripts as fresh processes, so edits to the scripts take effect without a
+restart. Generated output under `docs/` is not watched.
 
 Files monitored for changes:
 - `Formula/**/*.rb` - Homebrew formula files
-- `theme/**/*.{css,js,erb,html}` - Theme templates and assets
-- `scripts/*.rb` - Build scripts
-- `Makefile`, `README.md`, `Gemfile` - Configuration files
-
-#### Using Ruby Scripts (Alternative)
-
-```bash
-ruby scripts/make.rb build    # Build the documentation site
-ruby scripts/make.rb serve    # Start development server
-ruby scripts/make.rb parse    # Parse formulae and generate JSON data only
-ruby scripts/make.rb clean    # Clean all generated files
-ruby scripts/make.rb help     # Show all available commands
-```
+- `theme/**/*` - Templates, CSS, JS and assets
+- `scripts/parse_formulas.rb`, `scripts/build_site.rb`, `scripts/asset_processor.rb`, `scripts/time_formatter.rb` - Build scripts
+- `Makefile`
 
 ### How It Works
 
@@ -192,13 +188,20 @@ theme/
 ├── index.html.erb          # Homepage template
 ├── formulae.html.erb       # Formula listing template
 ├── formula.html.erb        # Individual formula template
-├── style.css               # Stylesheets with dark mode support
+├── style.css               # Tailwind input: directives, fonts, base styles
 └── main.js                 # Site functionality: search, dark mode toggle, etc.
 Formula/
-└── *.rb                    # Homebrew formula files
+└── <letter>/<name>.rb      # Homebrew formula files (generated by the sync)
 scripts/
-├── make.rb                 # Main build script
-└── parser.rb               # Formula parser
+├── sync_formulae.rb        # GitHub releases -> Formula/ (make sync)
+├── parse_formulas.rb       # Formula/ -> docs/_data/formulae.json (make parse)
+├── build_site.rb           # formulae.json + theme/ -> docs/ (make build)
+├── asset_processor.rb      # Tailwind CSS compile, JS minify, asset copy
+├── time_formatter.rb       # Date formatting for the templates
+├── serve.rb                # Development server (make serve)
+├── file_watcher.rb         # Change polling for the development server
+└── test_sync_formulae.rb   # Offline tests (make test)
+formula-sources.json        # Repos the sync tracks
 Makefile                    # Build commands and targets
 README.md                   # This documentation
 Gemfile                     # Ruby dependencies
@@ -206,7 +209,7 @@ Gemfile                     # Ruby dependencies
 
 ### Features
 
-- ✅ Zero external dependencies (Ruby stdlib only)
+- ✅ Static output: CSS compiled at build time, no runtime CDN scripts
 - ✅ Fast builds with auto-reload development server
 - ✅ Dark mode with system preference detection
 - ✅ Responsive design with accessibility support

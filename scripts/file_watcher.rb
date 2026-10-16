@@ -1,13 +1,13 @@
-# typed: strict
 # frozen_string_literal: true
 
 # Module for handling file watching and change detection.
 # Classes including this module must define a `build_site` method.
 module FileWatcher
+  # One thread polls and rebuilds sequentially, so a rebuild can never overlap
+  # another; no pending flag is needed.
   def start_file_watcher
     Thread.new do
       last_mtime = max_mtime
-      rebuild_pending = false
       watched_files = watched_files_count
 
       puts "👀 Watching #{watched_files} files for changes..."
@@ -16,17 +16,14 @@ module FileWatcher
         sleep 1
         current_mtime = max_mtime
 
-        next if should_skip_rebuild?(current_mtime, last_mtime, rebuild_pending)
+        next if current_mtime <= last_mtime
 
-        rebuild_pending = true
         handle_file_change(last_mtime)
         last_mtime = perform_rebuild_with_debounce
-        rebuild_pending = false
         puts "✅ Rebuild complete"
       rescue => e
         puts "⚠️  File watcher error: #{e.message}"
         puts "📍 Backtrace: #{e.backtrace.first(3).join(", ")}"
-        rebuild_pending = false
         sleep 2
         puts "🔄 File watcher continuing..."
       end
@@ -47,9 +44,6 @@ module FileWatcher
     [
       formula_files,
       theme_files,
-      template_files,
-      style_and_script_files,
-      asset_files,
       build_script_files,
       config_files,
     ].flatten.compact.uniq
@@ -63,10 +57,6 @@ module FileWatcher
   end
 
   private
-
-  def should_skip_rebuild?(current_mtime, last_mtime, rebuild_pending)
-    current_mtime <= last_mtime || rebuild_pending
-  end
 
   def handle_file_change(last_mtime)
     changed_file = find_changed_file(last_mtime)
@@ -86,35 +76,17 @@ module FileWatcher
     Dir.glob(File.expand_path("../Formula/**/*.rb", __dir__))
   end
 
+  # Templates, CSS, JS and assets: everything under theme/.
   def theme_files
     Dir.glob(File.expand_path("../theme/**/*", __dir__))
   end
 
-  def template_files
-    [
-      Dir.glob(File.expand_path("../theme/*.erb", __dir__)),
-      Dir.glob(File.expand_path("../theme/_*.erb", __dir__)),
-      Dir.glob(File.expand_path("../theme/*.html.erb", __dir__)),
-      Dir.glob(File.expand_path("../theme/_*.html.erb", __dir__)),
-    ].flatten
-  end
-
-  def style_and_script_files
-    [
-      Dir.glob(File.expand_path("../theme/*.css", __dir__)),
-      Dir.glob(File.expand_path("../theme/*.js", __dir__)),
-    ].flatten
-  end
-
-  def asset_files
-    Dir.glob(File.expand_path("../theme/assets/**/*", __dir__))
-  end
-
+  # Reloaded on each rebuild, since DevServer#build_site runs them as child
+  # processes.
   def build_script_files
-    [
-      File.expand_path("../scripts/parse_formulas.rb", __dir__),
-      File.expand_path("../scripts/build_site.rb", __dir__),
-    ]
+    %w[parse_formulas build_site asset_processor time_formatter].map do |name|
+      File.expand_path("../scripts/#{name}.rb", __dir__)
+    end
   end
 
   def config_files

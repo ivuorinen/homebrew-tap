@@ -1,13 +1,21 @@
 # Homebrew Tap Makefile
 # Provides convenient commands for building and managing the tap documentation
 
-.PHONY: help build serve parse clean test install dev setup check lint update sync
+.PHONY: help build sync serve parse clean dev setup check test install update \
+        update-bundler outdated watch serve-all serve-3000 serve-8080 build-production \
+        tap-test tap-install lint lint-fix lint-update-config formula-new info version
 
 # Default target
 .DEFAULT_GOAL := help
 
+# Every recipe line stops at its first failing command, including inside
+# pipelines, so a failed parse/build/test fails the make target too.
+SHELL := /bin/bash
+.SHELLFLAGS := -eu -o pipefail -c
+
 # Variables
 RUBY := ruby
+BUNDLE := bundle exec
 PORT := 4000
 HOST := localhost
 SCRIPTS_DIR := scripts
@@ -21,7 +29,7 @@ help: ## Show this help message
 	@echo "Usage: make <target>"
 	@echo ""
 	@echo "Targets:"
-	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-12s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z0-9_-]+:.*?## / {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 	@echo ""
 	@echo "Examples:"
 	@echo "  make build           # Build the documentation site"
@@ -31,126 +39,64 @@ help: ## Show this help message
 
 build: ## Build the static documentation site
 	@echo "🏗️  Building homebrew tap documentation..."
-	@if [ -f Gemfile ]; then \
-		RUBY_ABI_VERSION=$$($(RUBY) -e 'puts "#{RUBY_VERSION.split(".")[0]}.#{RUBY_VERSION.split(".")[1]}.0"'); \
-		export PATH="$$HOME/.local/share/gem/ruby/$$RUBY_ABI_VERSION/bin:$$PATH"; \
-		bundle exec $(RUBY) $(SCRIPTS_DIR)/parse_formulas.rb; \
-		bundle exec $(RUBY) $(SCRIPTS_DIR)/build_site.rb; \
-	else \
-		$(RUBY) $(SCRIPTS_DIR)/parse_formulas.rb; \
-		$(RUBY) $(SCRIPTS_DIR)/build_site.rb; \
-	fi
+	@$(BUNDLE) $(RUBY) $(SCRIPTS_DIR)/parse_formulas.rb
+	@$(BUNDLE) $(RUBY) $(SCRIPTS_DIR)/build_site.rb
 	@echo "✅ Build complete!"
 
 sync: ## Generate/update formulae from the latest GitHub releases (needs gh)
-	@command -v gh >/dev/null || (echo "❌ gh (GitHub CLI) not found. Install it first." && exit 1)
+	@command -v gh >/dev/null || { echo "❌ gh (GitHub CLI) not found. Install it first."; exit 1; }
 	@echo "🔄 Syncing formulae from upstream releases..."
 	@$(RUBY) $(SCRIPTS_DIR)/sync_formulae.rb
 	@echo "✅ Sync complete!"
 
 serve: ## Start development server (default: localhost:4000)
 	@echo "🚀 Starting development server on http://$(HOST):$(PORT)"
-	@if [ -f Gemfile ]; then \
-		RUBY_ABI_VERSION=$$($(RUBY) -e 'puts "#{RUBY_VERSION.split(".")[0]}.#{RUBY_VERSION.split(".")[1]}.0"'); \
-		export PATH="$$HOME/.local/share/gem/ruby/$$RUBY_ABI_VERSION/bin:$$PATH"; \
-		bundle exec $(RUBY) $(SCRIPTS_DIR)/serve.rb $(PORT) $(HOST); \
-	else \
-		$(RUBY) $(SCRIPTS_DIR)/serve.rb $(PORT) $(HOST); \
-	fi
+	@$(BUNDLE) $(RUBY) $(SCRIPTS_DIR)/serve.rb $(PORT) $(HOST)
 
 parse: ## Parse formulae and generate JSON data only
 	@echo "📋 Parsing formulae..."
-	@if [ -f Gemfile ]; then \
-		RUBY_ABI_VERSION=$$($(RUBY) -e 'puts "#{RUBY_VERSION.split(".")[0]}.#{RUBY_VERSION.split(".")[1]}.0"'); \
-		export PATH="$$HOME/.local/share/gem/ruby/$$RUBY_ABI_VERSION/bin:$$PATH"; \
-		bundle exec $(RUBY) $(SCRIPTS_DIR)/parse_formulas.rb; \
-	else \
-		$(RUBY) $(SCRIPTS_DIR)/parse_formulas.rb; \
-	fi
+	@$(BUNDLE) $(RUBY) $(SCRIPTS_DIR)/parse_formulas.rb
 	@echo "✅ Formulae parsing complete!"
 
 clean: ## Clean all generated files
 	@echo "🧹 Cleaning generated files..."
-	@$(RUBY) $(SCRIPTS_DIR)/make.rb clean
+	@rm -rf $(DOCS_DIR)/index.html $(DOCS_DIR)/formulae.html $(DOCS_DIR)/formula \
+	        $(DOCS_DIR)/_data/formulae.json $(DOCS_DIR)/style.css $(DOCS_DIR)/main.js
+	@if [ -d $(DOCS_DIR)/assets ]; then find $(DOCS_DIR)/assets -type f ! -name .gitkeep -delete; fi
 	@echo "✅ Clean complete!"
 
 dev: parse build serve ## Full development workflow: parse, build, and serve
 
-setup: ## Initial project setup and dependency check
-	@echo "🔧 Setting up homebrew tap development environment..."
-	@which $(RUBY) > /dev/null || (echo "❌ Ruby not found. Please install Ruby first." && exit 1)
-	@echo "✅ Ruby found: $$($(RUBY) --version)"
-	@test -d $(FORMULA_DIR) || (echo "❌ Formula directory not found" && exit 1)
-	@test -d $(THEME_DIR) || (echo "❌ Theme directory not found" && exit 1)
-	@test -f $(THEME_DIR)/index.html.erb || (echo "❌ Theme templates not found" && exit 1)
-	@echo "📦 Installing Ruby dependencies..."
-	@if ! command -v bundle >/dev/null 2>&1; then \
-		echo "📥 Installing bundler..."; \
-		gem install bundler --user-install; \
-	fi
-	@if [ -f Gemfile ]; then \
-		echo "🔄 Running bundle install..."; \
-		RUBY_ABI_VERSION=$$($(RUBY) -e 'puts "#{RUBY_VERSION.split(".")[0]}.#{RUBY_VERSION.split(".")[1]}.0"'); \
-		(export PATH="$$HOME/.local/share/gem/ruby/$$RUBY_ABI_VERSION/bin:$$PATH" && \
-		 bundle config set path 'vendor/bundle' && \
-		 bundle install); \
-		echo "✅ Ruby dependencies installed!"; \
-	else \
-		echo "ℹ️  No Gemfile found, skipping dependency installation"; \
-	fi
+setup: check install ## Initial project setup and dependency check
 	@echo "✅ Environment setup complete!"
 
 check: ## Check if all required files and directories exist
 	@echo "🔍 Checking project structure..."
-	@test -d $(SCRIPTS_DIR) && echo "✅ Scripts directory exists" || echo "❌ Scripts directory missing"
-	@test -d $(THEME_DIR) && echo "✅ Theme directory exists" || echo "❌ Theme directory missing"
-	@test -d $(FORMULA_DIR) && echo "✅ Formula directory exists" || echo "❌ Formula directory missing"
-	@test -f $(THEME_DIR)/index.html.erb && echo "✅ Index template exists" || echo "❌ Index template missing"
-	@test -f $(THEME_DIR)/formulae.html.erb && echo "✅ Formulae template exists" || echo "❌ Formulae template missing"
-	@test -f $(THEME_DIR)/formula.html.erb && echo "✅ Formula template exists" || echo "❌ Formula template missing"
-	@test -f $(THEME_DIR)/style.css && echo "✅ CSS file exists" || echo "❌ CSS file missing"
-	@test -f $(THEME_DIR)/main.js && echo "✅ JavaScript file exists" || echo "❌ JavaScript file missing"
+	@command -v $(RUBY) >/dev/null || { echo "❌ Ruby not found. Please install Ruby first."; exit 1; }
+	@for d in $(SCRIPTS_DIR) $(THEME_DIR) $(FORMULA_DIR); do \
+		test -d "$$d" || { echo "❌ Directory missing: $$d"; exit 1; }; \
+	done
+	@for f in index.html.erb formulae.html.erb formula.html.erb style.css main.js; do \
+		test -f "$(THEME_DIR)/$$f" || { echo "❌ Theme file missing: $(THEME_DIR)/$$f"; exit 1; }; \
+	done
+	@echo "✅ Project structure OK"
 
 test: check ## Run tests and validation
 	@echo "🧪 Running validation tests..."
-	@$(RUBY) -c $(SCRIPTS_DIR)/parse_formulas.rb && echo "✅ parse_formulas.rb syntax OK" || echo "❌ parse_formulas.rb syntax error"
-	@$(RUBY) -c $(SCRIPTS_DIR)/build_site.rb && echo "✅ build_site.rb syntax OK" || echo "❌ build_site.rb syntax error"
-	@$(RUBY) -c $(SCRIPTS_DIR)/serve.rb && echo "✅ serve.rb syntax OK" || echo "❌ serve.rb syntax error"
-	@$(RUBY) -c $(SCRIPTS_DIR)/make.rb && echo "✅ make.rb syntax OK" || echo "❌ make.rb syntax error"
-	@$(RUBY) -c $(SCRIPTS_DIR)/sync_formulae.rb && echo "✅ sync_formulae.rb syntax OK" || echo "❌ sync_formulae.rb syntax error"
-	@$(RUBY) $(SCRIPTS_DIR)/test_sync_formulae.rb
+	@for f in $(SCRIPTS_DIR)/*.rb; do $(RUBY) -c "$$f" >/dev/null; done
+	@$(BUNDLE) $(RUBY) $(SCRIPTS_DIR)/test_sync_formulae.rb
 	@echo "✅ All tests passed!"
 
-install: ## Install development dependencies (if Gemfile exists)
-	@if [ -f Gemfile ]; then \
-		echo "📦 Installing Ruby dependencies..."; \
-		if ! command -v bundle >/dev/null 2>&1; then \
-			echo "📥 Installing bundler..."; \
-			gem install bundler --user-install; \
-		fi; \
-		RUBY_ABI_VERSION=$$($(RUBY) -e 'puts "#{RUBY_VERSION.split(".")[0]}.#{RUBY_VERSION.split(".")[1]}.0"'); \
-		(export PATH="$$HOME/.local/share/gem/ruby/$$RUBY_ABI_VERSION/bin:$$PATH" && \
-		 bundle config set path 'vendor/bundle' && \
-		 bundle install); \
-		echo "✅ Dependencies installed!"; \
-	else \
-		echo "ℹ️  No Gemfile found, skipping dependency installation"; \
-	fi
+install: ## Install development dependencies
+	@echo "📦 Installing Ruby dependencies..."
+	@bundle config set path 'vendor/bundle'
+	@bundle install
+	@echo "✅ Dependencies installed!"
 
 update: ## Update all gems to their latest versions (respecting Gemfile constraints)
-	@if [ -f Gemfile ]; then \
-		echo "🔄 Updating Ruby dependencies..."; \
-		echo "📦 Running bundle update..."; \
-		RUBY_ABI_VERSION=$$($(RUBY) -e 'puts "#{RUBY_VERSION.split(".")[0]}.#{RUBY_VERSION.split(".")[1]}.0"'); \
-		PATH="$$HOME/.local/share/gem/ruby/$$RUBY_ABI_VERSION/bin:$$PATH" bundle update; \
-		echo "✅ All gems updated to latest versions!"; \
-		echo ""; \
-		echo "💡 Current gem versions:"; \
-		PATH="$$HOME/.local/share/gem/ruby/$$RUBY_ABI_VERSION/bin:$$PATH" bundle list | grep -E "^\s*\*" | head -10; \
-	else \
-		echo "❌ No Gemfile found"; \
-		exit 1; \
-	fi
+	@echo "🔄 Updating Ruby dependencies..."
+	@bundle update
+	@echo "✅ All gems updated to latest versions!"
 
 update-bundler: ## Update bundler itself to the latest version
 	@echo "🔄 Updating Bundler..."
@@ -159,14 +105,9 @@ update-bundler: ## Update bundler itself to the latest version
 	@echo "Current version: $$(bundle --version)"
 
 outdated: ## Show outdated gems
-	@if [ -f Gemfile ]; then \
-		echo "📋 Checking for outdated gems..."; \
-		RUBY_ABI_VERSION=$$($(RUBY) -e 'puts "#{RUBY_VERSION.split(".")[0]}.#{RUBY_VERSION.split(".")[1]}.0"'); \
-		PATH="$$HOME/.local/share/gem/ruby/$$RUBY_ABI_VERSION/bin:$$PATH" bundle outdated || true; \
-	else \
-		echo "❌ No Gemfile found"; \
-		exit 1; \
-	fi
+	@echo "📋 Checking for outdated gems..."
+	@# bundle outdated exits 1 when anything is outdated; that is a report, not an error.
+	@bundle outdated || true
 
 watch: ## Watch for file changes and auto-rebuild (alias for serve)
 	@$(MAKE) serve
@@ -188,22 +129,22 @@ build-production: ## Build for production deployment
 	@echo "✅ Production build complete!"
 
 # Homebrew-specific targets
-tap-test: ## Test the tap installation locally
-	@echo "🍺 Testing tap installation..."
-	@brew tap-new ivuorinen/homebrew-tap --no-git 2>/dev/null || true
-	@brew audit --strict $(FORMULA_DIR)/*.rb || echo "⚠️  Some formulae may have audit issues"
+tap-test: ## Audit this tap's formulae locally, as CI does (needs brew)
+	@echo "🍺 Auditing tap..."
+	@brew tap ivuorinen/tap "$$(pwd)"
+	@brew test-bot --only-tap-syntax --tap=ivuorinen/tap
 
 tap-install: ## Install this tap locally for testing
 	@echo "🍺 Installing tap locally..."
-	@brew tap $$(pwd)
+	@brew tap ivuorinen/tap "$$(pwd)"
 
 lint: ## Lint Ruby (RuboCop, no brew needed). Formula audit still runs in CI via brew.
 	@echo "🔍 Linting Ruby with RuboCop..."
-	@bundle exec rubocop
+	@$(BUNDLE) rubocop
 
 lint-fix: ## Auto-correct safe RuboCop offenses
 	@echo "🔧 Auto-correcting RuboCop offenses..."
-	@bundle exec rubocop -A
+	@$(BUNDLE) rubocop -A
 
 lint-update-config: ## Refresh vendored Homebrew RuboCop config from homebrew-core
 	@echo "⬇️  Updating .rubocop_homebrew.yml from Homebrew/homebrew-core..."
@@ -247,24 +188,11 @@ info: ## Show project information
 	@echo "Formulae: $$(find $(FORMULA_DIR) -name '*.rb' | wc -l | tr -d ' ') files"
 	@echo "Theme files: $$(ls -1 $(THEME_DIR)/* | wc -l | tr -d ' ') files"
 	@if [ -f $(DOCS_DIR)/_data/formulae.json ]; then \
-		echo "Generated formulae: $$(cat $(DOCS_DIR)/_data/formulae.json | grep -o '"formulae_count":[0-9]*' | cut -d: -f2)"; \
+		echo "Generated formulae: $$($(RUBY) -rjson -e 'puts JSON.parse(File.read(ARGV[0]))["formulae_count"]' $(DOCS_DIR)/_data/formulae.json)"; \
 	fi
 
 version: ## Show version information
 	@echo "Homebrew Tap Builder"
 	@echo "Ruby: $$($(RUBY) --version)"
-	@echo "Make: $$(make --version | head -1)"
+	@echo "Make: $$($(MAKE) --version | head -1)"
 	@echo "Git: $$(git --version 2>/dev/null || echo 'not available')"
-
-# Legacy support (for backward compatibility with scripts/make.rb)
-ruby-build: ## Legacy: use Ruby make script for build
-	@$(RUBY) $(SCRIPTS_DIR)/make.rb build
-
-ruby-serve: ## Legacy: use Ruby make script for serve
-	@$(RUBY) $(SCRIPTS_DIR)/make.rb serve
-
-ruby-clean: ## Legacy: use Ruby make script for clean
-	@$(RUBY) $(SCRIPTS_DIR)/make.rb clean
-
-ruby-parse: ## Legacy: use Ruby make script for parse
-	@$(RUBY) $(SCRIPTS_DIR)/make.rb parse
