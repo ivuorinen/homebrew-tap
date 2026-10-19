@@ -2,7 +2,8 @@
 
 source "https://rubygems.org"
 
-ruby ">= 4.0"
+# Floor is brew's own Ruby: on the macOS test bot, `make setup` runs under it.
+ruby ">= 3.3"
 
 gem "json", "~> 3.0"
 # Standalone Tailwind CLI: compiles theme/style.css at build time, replacing
