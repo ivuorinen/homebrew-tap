@@ -2,10 +2,13 @@
 
 source "https://rubygems.org"
 
-ruby ">= 3.0.0"
+# Floor is brew's own Ruby: on the macOS test bot, `make setup` runs under it.
+ruby ">= 3.3"
 
-gem "cssminify2", "~> 2.0"
 gem "json", "~> 3.0"
+# Standalone Tailwind CLI: compiles theme/style.css at build time, replacing
+# the development-only Play CDN script the pages used to load.
+gem "tailwindcss-ruby", "~> 4.3"
 gem "terser", "~> 1.2"
 
 # dev dependencies

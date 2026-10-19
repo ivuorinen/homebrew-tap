@@ -1,11 +1,8 @@
 #!/usr/bin/env ruby
-# typed: strict
 # frozen_string_literal: true
 
 require "webrick"
 require "fileutils"
-require_relative "parse_formulas"
-require_relative "build_site"
 require_relative "file_watcher"
 
 # Development server with file watching for homebrew tap documentation
@@ -20,7 +17,6 @@ class DevServer
     @port = port
     @host = host
     @site_dir = File.expand_path("../docs", __dir__)
-    @docs_dir = File.expand_path("../docs", __dir__)
   end
 
   def start
@@ -37,12 +33,13 @@ class DevServer
 
   private
 
+  # Each stage runs in a child process so it loads the scripts as they are on
+  # disk now. In-process, require_relative loaded them once at startup, and the
+  # watcher rebuilt with stale code after an edit to parse_formulas.rb or
+  # build_site.rb. The child inherits Bundler's environment from `bundle exec`.
   def build_site
-    # Generate formulae data
-    FormulaParser.run
-
-    # Build static site
-    SiteBuilder.build
+    system(RbConfig.ruby, File.join(__dir__, "parse_formulas.rb"), exception: true)
+    system(RbConfig.ruby, File.join(__dir__, "build_site.rb"), exception: true)
   end
 
   def start_server

@@ -85,6 +85,9 @@ runs:
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.gh-token }}
+        # Lets the sync exit 0 when only some repos fail, so the caller can
+        # still open the PR for the rest; the caller fails on this file later.
+        SYNC_FAILURES_FILE: ${{ runner.temp }}/sync-failures.txt
       run: ruby scripts/sync_formulae.rb
 
     - name: Run brew test-bot (tap syntax)

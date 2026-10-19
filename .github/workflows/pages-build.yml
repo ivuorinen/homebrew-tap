@@ -27,10 +27,11 @@ jobs:
   build:
     name: Build site
     runs-on: ubuntu-latest
+    # This job runs third-party gem code (make setup/build), so it gets only
+    # what its own steps use. Publishing rights stay on the deploy job.
     permissions:
       contents: read
-      pages: write # required by actions/deploy-pages to publish the Pages deployment
-      id-token: write # required by actions/deploy-pages for OIDC authentication
+      pages: read # actions/configure-pages reads the Pages site config
 
     steps:
       - name: Checkout

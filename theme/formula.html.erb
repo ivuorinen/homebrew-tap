@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" class="h-full min-h-full scroll-smooth font-sans transition-colors duration-200">
-<% raw_tap_name = @data['tap_name'].to_s %>
-<% tap_name = raw_tap_name.empty? ? 'ivuorinen/tap' : raw_tap_name %>
+<% tap_name = @data['tap_name'].to_s %>
 <% formula_name = @formula['name'].to_s %>
 <% name = h("#{tap_name}/#{formula_name}") %>
 <head>
@@ -39,7 +38,7 @@
       </section>
 
       <section>
-        <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white/80 shadow-sm ring-1 ring-black/5 dark:border-slate-700 dark:bg-slate-900/70 dark:ring-white/10">
+        <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white/80 shadow-xs ring-1 ring-black/5 dark:border-slate-700 dark:bg-slate-900/70 dark:ring-white/10">
           <table class="w-full divide-y divide-slate-200 text-sm dark:divide-slate-700">
             <caption class="sr-only">Formula Details</caption>
             <tbody>
@@ -59,7 +58,7 @@
                 <tr class="divide-x divide-slate-200 dark:divide-slate-700">
                   <th scope="row" class="w-40 bg-slate-50 px-4 py-3 text-left font-medium text-slate-700 dark:bg-slate-900 dark:text-slate-300">Homepage</th>
                   <td class="px-4 py-3">
-                    <a href="<%= h(@formula['homepage'].to_s) %>" target="_blank" class="inline-flex items-center gap-1 text-sky-600 transition hover:text-sky-500 dark:text-sky-400 dark:hover:text-sky-300">
+                    <a href="<%= h(@formula['homepage'].to_s) %>" target="_blank" class="inline-flex items-center gap-1 text-sky-700 transition hover:text-sky-800 dark:text-sky-400 dark:hover:text-sky-300">
                       <%= h(@formula['homepage'].to_s) %>
                       <span aria-hidden="true">↗</span>
                     </a>
@@ -96,8 +95,8 @@
                       readonly
                       value="<%= h(@formula['sha256'].to_s) %>"
                       aria-label="SHA256 checksum"
-                      onclick="this.select()"
-                      class="w-full bg-slate-50 dark:bg-slate-800 px-3 py-1.5 font-mono text-xs text-slate-800 dark:text-slate-200 rounded-lg border border-slate-200 dark:border-slate-600 cursor-pointer appearance-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-400 dark:focus-visible:outline-sky-300 focus-visible:outline-offset-[-2px]"
+                      data-copy
+                      class="w-full bg-slate-50 dark:bg-slate-800 px-3 py-1.5 font-mono text-xs text-slate-800 dark:text-slate-200 rounded-lg border border-slate-200 dark:border-slate-600 cursor-pointer appearance-none focus:outline-hidden focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-400 dark:focus-visible:outline-sky-300 focus-visible:outline-offset-[-2px]"
                     >
                   </td>
                 </tr>
@@ -115,9 +114,9 @@
           <% versions.each do |v| %>
             <div class="space-y-2">
               <div class="flex items-center gap-3">
-                <span class="badge inline-flex items-center rounded-full bg-emerald-500 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white dark:bg-emerald-400">v<%= h(v['version'].to_s) %></span>
+                <span class="badge inline-flex items-center rounded-full bg-emerald-700 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white dark:bg-emerald-300 dark:text-slate-900">v<%= h(v['version'].to_s) %></span>
                 <% if v['url'] %>
-                  <a href="<%= h(v['url'].to_s) %>" target="_blank" class="text-sm text-sky-600 transition hover:text-sky-500 dark:text-sky-400 dark:hover:text-sky-300">Download ↗</a>
+                  <a href="<%= h(v['url'].to_s) %>" target="_blank" class="text-sm text-sky-700 transition hover:text-sky-800 dark:text-sky-400 dark:hover:text-sky-300">Download ↗</a>
                 <% end %>
               </div>
               <%= render_partial('command_input', command: "brew install #{h("#{tap_name}/#{v['name']}")}", size: 'sm', label: 'CLI') %>

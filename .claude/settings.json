@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if command -v sonar >/dev/null 2>&1; then sonar hook claude-pre-tool-use; fi",
+            "command": "if command -v sonar >/dev/null 2>&1; then sonar hook claude-pre-tool-use; else echo 'sonar not installed: file secret scanning disabled' >&2; fi",
             "timeout": 60
           }
         ]
@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if command -v sonar >/dev/null 2>&1; then sonar hook claude-prompt-submit; fi",
+            "command": "if command -v sonar >/dev/null 2>&1; then sonar hook claude-prompt-submit; else echo 'sonar not installed: prompt secret scanning disabled' >&2; fi",
             "timeout": 60
           }
         ]

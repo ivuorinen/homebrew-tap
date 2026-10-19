@@ -1,12 +1,17 @@
 #!/usr/bin/env ruby
-# typed: strict
 # frozen_string_literal: true
 
-# Offline unit check for the pure functions in sync_formulae.rb.
+# Offline unit check for the pure functions in sync_formulae.rb, and for the
+# stage contracts downstream of it: formula file -> FormulaParser, and
+# formulae.json -> SiteBuilder#group_formulae.
 # No network: feeds recorded asset lists from the four seed repos.
-# Run: ruby scripts/test_sync_formulae.rb
+# Run: bundle exec ruby scripts/test_sync_formulae.rb
 
+require "prism"
+require "tmpdir"
 require_relative "sync_formulae"
+require_relative "parse_formulas"
+require_relative "build_site"
 
 # Offline checks for SyncFormulae's pure functions using recorded asset fixtures.
 class TestSyncFormulae
@@ -87,6 +92,9 @@ class TestSyncFormulae
     check_match_asset
     check_never_selects_junk
     check_formula_body
+    check_formula_body_escapes_api_strings
+    check_latest_release_selection
+    check_group_formulae
 
     puts "\n#{@failures.zero? ? "ALL PASS" : "#{@failures} FAILURE(S)"}"
     exit(@failures.zero? ? 0 : 1)
@@ -179,20 +187,15 @@ class TestSyncFormulae
     check("formula_body omits explicit version (brew audit rejects it)") do
       body.match?(/^\s*version\s/).!
     end
-    # ...so the version must stay recoverable from the URL, which is how both
-    # Homebrew and parse_formulas.rb#extract_version get it now.
-    check("version is recoverable from the asset URL") do
-      url = body[/^\s*url "([^"]+)"/, 1]
-      url && url.match(/v?(\d+(?:\.\d+)+)/)&.[](1) == "2026.03.4"
-    end
     check("formula_body raw install uses stable.url basename") { body.include?("File.basename(stable.url)") }
     check("formula_body nests on_macos/on_arm") { body.include?("on_macos do") && body.include?("on_arm do") }
     check("formula_body omits keg_only when not versioned") { body["keg_only"].nil? }
-    check("formula_body embeds the release date comment") { body.include?("# released: 2026-03-04T12:00:00Z") }
 
-    # The parse_formulas regex must recover exactly what formula_body emits.
-    released = body[/^#\s*released:\s*(\S+)/, 1]
-    check("parse_formulas regex round-trips the release date") { released == "2026-03-04T12:00:00Z" }
+    # The real parser must recover what formula_body emits: the version from
+    # the asset URL (how both Homebrew and the docs site get it) and the date.
+    parsed = parse_with_formula_parser(body)
+    check("FormulaParser recovers the version from the asset URL") { parsed[:version] == "2026.03.4" }
+    check("FormulaParser recovers the release date") { parsed[:released_at] == "2026-03-04T12:00:00Z" }
 
     # Versioned formula: brew's "@<digit>" -> "AT<digit>" class mangling + keg_only.
     vclass = SyncFormulae.class_name("gh-calver@2026.03.4")
@@ -201,6 +204,111 @@ class TestSyncFormulae
     check("versioned formula_body has keg_only :versioned_formula") { vbody.include?("keg_only :versioned_formula") }
     check("versioned formula_body class is the mangled name") { vbody.include?("class GhCalverAT2026034 < Formula") }
     check("versioned formula_body header uses the @ name") { vbody.include?("# gh-calver@2026.03.4 —") }
+  end
+
+  # A repo description is API text: a `"` must not end the literal and a
+  # `#{...}` must not become interpolation in the generated Ruby.
+  def check_formula_body_escapes_api_strings
+    # Built from parts so no linter autocorrect can turn the fixture itself into
+    # live interpolation; the payload raises rather than doing anything if run.
+    hostile = ["Tool with a \"quoted\" word and #", '{raise "interpolated"} in it'].join
+    meta = base_meta(keg_only: false, formula_name: CALVER, klass: "GhCalver").merge(desc: hostile)
+    body = SyncFormulae.formula_body(meta)
+    result = Prism.parse(body)
+    check("formula_body with quotes and \#{} in desc parses as Ruby") { result.success? }
+
+    desc_call = find_call(result.value, :desc)
+    desc_arg = desc_call.arguments.arguments.first if desc_call&.arguments
+    check("desc is a plain string literal, not interpolation") { desc_arg.is_a?(Prism::StringNode) }
+    check("desc literal holds the exact API text") do
+      desc_arg.respond_to?(:unescaped) && desc_arg.unescaped == hostile
+    end
+    check("FormulaParser round-trips the escaped desc") { parse_with_formula_parser(body)[:description] == hostile }
+  end
+
+  # The unversioned formula follows GitHub's releases/latest, never the first
+  # row of the release list, which can be a prerelease or a later backport.
+  def check_latest_release_selection
+    release = lambda do |tag, prerelease: false|
+      { "tag_name" => tag, "draft" => false, "prerelease" => prerelease, "published_at" => "2026-01-01T00:00:00Z",
+        "assets" => ["#{tag}_darwin_arm64.tar.gz"].map { |n| self.class.asset(n) } }
+    end
+    rows = [release.call("3.0.0-rc1", prerelease: true), release.call("1.9.9"), release.call("2.0.0")]
+    responses = {
+      "repos/o/tool"                       => { "description" => "Tool", "license" => nil },
+      "repos/o/tool/releases/latest"       => { "tag_name" => "2.0.0" },
+      "repos/o/tool/releases?per_page=100" => rows,
+    }
+    metas, latest_tag = with_stubbed_gh(responses) { SyncFormulae.build_metas({ "repo" => "o/tool" }) }
+
+    check("latest tag comes from releases/latest") { latest_tag == "2.0.0" }
+    check("prereleases are excluded") { metas.none? { |m| m[:tag] == "3.0.0-rc1" } }
+    check("a backport listed first is not latest") { metas.first[:tag] == "1.9.9" && latest_tag != metas.first[:tag] }
+
+    broken = rows.map { |r| (r["tag_name"] == "2.0.0") ? r.merge("assets" => []) : r }
+    raised = begin
+      with_stubbed_gh(responses.merge("repos/o/tool/releases?per_page=100" => broken)) do
+        SyncFormulae.build_metas({ "repo" => "o/tool" })
+      end
+      false
+    rescue SyncFormulae::Error
+      true
+    end
+    check("latest release without binaries fails the repo") { raised }
+  end
+
+  def check_group_formulae
+    builder = SiteBuilder.new
+    builder.instance_variable_set(:@data, {
+      "formulae" => [
+        { "name" => "x", "version" => "2.0" },
+        { "name" => "x@1.10", "version" => "1.10" },
+        { "name" => "x@1.9", "version" => "1.9" },
+        { "name" => "x@garbage", "version" => "garbage" },
+        { "name" => "y@1.0", "version" => "1.0" },
+      ],
+    })
+    builder.send(:group_formulae)
+    data = builder.instance_variable_get(:@data)
+    by_name = data["formulae"].to_h { |f| [f["name"], f] }
+
+    check("group_formulae keeps one entry per tool") { by_name.keys == %w[x y] && data["formulae_count"] == 2 }
+    check("group_formulae sorts versions newest first, unparseable last") do
+      by_name["x"]["versions"].map { |v| v["version"] } == %w[1.10 1.9 garbage]
+    end
+    check("group_formulae synthesizes a main for an orphan x@ver") do
+      by_name["y"]["version"] == "1.0" && by_name["y"]["versions"].map { |v| v["name"] } == ["y@1.0"]
+    end
+  end
+
+  # Writes body to a temp formula file and parses it with the real parser.
+  def parse_with_formula_parser(body)
+    Dir.mktmpdir do |dir|
+      path = File.join(dir, "#{CALVER}.rb")
+      File.write(path, body)
+      FormulaParser.new.send(:parse_formula, path)
+    end
+  end
+
+  # Depth-first search for the first method call named `name`.
+  def find_call(node, name)
+    return node if node.is_a?(Prism::CallNode) && node.name == name
+
+    node.compact_child_nodes.each do |child|
+      found = find_call(child, name)
+      return found if found
+    end
+    nil
+  end
+
+  # Replaces SyncFormulae.gh_json with canned responses for the block, so
+  # build_metas runs without the network; an unknown path is a test bug.
+  def with_stubbed_gh(responses)
+    original = SyncFormulae.method(:gh_json)
+    SyncFormulae.define_singleton_method(:gh_json) { |*path| responses.fetch(path.join(" ")) }
+    yield
+  ensure
+    SyncFormulae.define_singleton_method(:gh_json, original)
   end
 end
 
