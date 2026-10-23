@@ -9,5 +9,9 @@
   },
   { "repo": "ivuorinen/gh-history" },
   { "repo": "ivuorinen/gh-calver" },
-  { "repo": "ivuorinen/pinboard-checker" }
+  { "repo": "ivuorinen/pinboard-checker" },
+  {
+    "repo": "ivuorinen/git-dirty",
+    "desc": "Tree view of git repositories with branch, dirty state and ahead/behind status"
+  }
 ]
