@@ -40,7 +40,7 @@ jobs:
   # without touching any file pages-build.yml watches, and only fails at deploy.
   site:
     name: Build site and run tests
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
 
