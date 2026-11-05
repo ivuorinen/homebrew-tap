@@ -94,6 +94,7 @@ class TestSyncFormulae
     check_formula_body
     check_formula_body_escapes_api_strings
     check_latest_release_selection
+    check_unpublished_formulae
     check_group_formulae
 
     puts "\n#{@failures.zero? ? "ALL PASS" : "#{@failures} FAILURE(S)"}"
@@ -233,21 +234,25 @@ class TestSyncFormulae
       { "tag_name" => tag, "draft" => false, "prerelease" => prerelease, "published_at" => "2026-01-01T00:00:00Z",
         "assets" => ["#{tag}_darwin_arm64.tar.gz"].map { |n| self.class.asset(n) } }
     end
-    rows = [release.call("3.0.0-rc1", prerelease: true), release.call("1.9.9"), release.call("2.0.0")]
+    rows = [release.call("3.0.0-rc1", prerelease: true), release.call("1.9.9"), release.call("v2.0.0")]
+    list = "--paginate --slurp repos/o/tool/releases?per_page=100"
     responses = {
-      "repos/o/tool"                       => { "description" => "Tool", "license" => nil },
-      "repos/o/tool/releases/latest"       => { "tag_name" => "2.0.0" },
-      "repos/o/tool/releases?per_page=100" => rows,
+      "repos/o/tool"                 => { "description" => "Tool", "license" => nil },
+      "repos/o/tool/releases/latest" => { "tag_name" => "v2.0.0" },
+      # --slurp: one array per page; split so a later page's release counts too.
+      list                           => [rows.first(2), rows.drop(2)],
     }
-    metas, latest_tag = with_stubbed_gh(responses) { SyncFormulae.build_metas({ "repo" => "o/tool" }) }
+    metas, latest_tag, published = with_stubbed_gh(responses) { SyncFormulae.build_metas({ "repo" => "o/tool" }) }
 
-    check("latest tag comes from releases/latest") { latest_tag == "2.0.0" }
+    check("latest tag comes from releases/latest") { latest_tag == "v2.0.0" }
     check("prereleases are excluded") { metas.none? { |m| m[:tag] == "3.0.0-rc1" } }
     check("a backport listed first is not latest") { metas.first[:tag] == "1.9.9" && latest_tag != metas.first[:tag] }
+    check("a release on a later page is read") { metas.any? { |m| m[:tag] == "v2.0.0" } }
+    check("published versions: every page, no prerelease, no v prefix") { published == %w[1.9.9 2.0.0] }
 
-    broken = rows.map { |r| (r["tag_name"] == "2.0.0") ? r.merge("assets" => []) : r }
+    broken = rows.map { |r| (r["tag_name"] == "v2.0.0") ? r.merge("assets" => []) : r }
     raised = begin
-      with_stubbed_gh(responses.merge("repos/o/tool/releases?per_page=100" => broken)) do
+      with_stubbed_gh(responses.merge(list => [broken])) do
         SyncFormulae.build_metas({ "repo" => "o/tool" })
       end
       false
@@ -255,6 +260,24 @@ class TestSyncFormulae
       true
     end
     check("latest release without binaries fails the repo") { raised }
+  end
+
+  # The sync deletes a versioned formula once its release is unpublished, but
+  # never a hand-written one, the unversioned one, or another tool's.
+  def check_unpublished_formulae
+    Dir.mktmpdir do |dir|
+      generated = "# tool — #{SyncFormulae::GENERATED_MARKER}; do not edit by hand.\n"
+      {
+        "tool@2.0.0.rb"       => generated,                         # still published
+        "tool@1.0.0.rb"       => generated,                         # release deleted
+        "tool@0.9.0.rb"       => "class ToolAT090 < Formula\nend\n", # hand-written
+        "tool.rb"             => generated,                         # unversioned
+        "tool-extra@1.0.0.rb" => generated,                         # another tool
+      }.each { |file, body| File.write(File.join(dir, file), body) }
+
+      got = SyncFormulae.unpublished_formulae("tool", %w[2.0.0], dir: dir).map { |p| File.basename(p) }
+      check("unpublished_formulae: only the tool's generated, unpublished versions") { got == %w[tool@1.0.0.rb] }
+    end
   end
 
   def check_group_formulae
