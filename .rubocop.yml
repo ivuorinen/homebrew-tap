@@ -18,9 +18,8 @@ inherit_mode:
     - Exclude
 
 AllCops:
-  # Honor the Gemfile floor (ruby ">= 3.3"); the vendored file pins 4.0. The
-  # floor is brew's own Ruby, which runs `make setup` on the macOS test bot.
-  TargetRubyVersion: "3.3"
+  # TargetRubyVersion comes from the vendored file (4.0), matching brew's own
+  # Ruby and the one mise.toml pins.
   # The vendored config sets Include to ["**/*.rbi"] (it assumes brew's base
   # config supplies the default **/*.rb). Restore it so our .rb files are linted.
   Include:
