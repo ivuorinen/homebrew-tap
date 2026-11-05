@@ -7,7 +7,7 @@
 [tools]
 ruby = "4.0.9"
 # terser minifies main.js through ExecJS, which needs a JavaScript runtime.
-node = "24.21.0"
+node = "24.22.2"
 # `mise run sync` reads the GitHub releases through it, and the sync workflow
 # opens its PR with it.
 gh = "2.103.3"
