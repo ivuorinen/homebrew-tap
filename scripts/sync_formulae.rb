@@ -191,7 +191,7 @@ module SyncFormulae
   def unpublished_formulae(name, published_versions, dir: File.dirname(formula_path(name)))
     Dir.glob(File.join(dir, "#{name}@*.rb")).select do |path|
       version = File.basename(path, ".rb").delete_prefix("#{name}@")
-      !published_versions.include?(version) && File.read(path).include?(GENERATED_MARKER)
+      published_versions.none?(version) && File.read(path).include?(GENERATED_MARKER)
     end
   end
 
