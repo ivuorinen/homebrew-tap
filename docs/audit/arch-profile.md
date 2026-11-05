@@ -10,7 +10,7 @@ Evidence:
   2. `scripts/parse_formulas.rb`: `Formula/**/*.rb` (regex, no evaluation) → `docs/_data/formulae.json`
   3. `scripts/build_site.rb`: `docs/_data/formulae.json` + `theme/*.erb` → `docs/**/*.html`, `style.css`, `main.js`
 - Stages share no Ruby code: build_site.rb requires only `time_formatter` and `asset_processor`, and parse_formulas.rb requires only stdlib. The hand-off is the file on disk.
-- The orchestrators (`Makefile` build/parse, `serve.rb`, CI workflows) run the stages in order; no stage calls another's internals.
+- The orchestrators (the `build`/`parse` mise tasks, `serve.rb`, CI workflows) run the stages in order; no stage calls another's internals.
 - Medium, not High: there is no `pipeline/` or `filters/` directory or naming. The pattern is inferred from data flow.
 
 ### Plugin / Extension, MVC, Layered and the others — not detected
@@ -29,4 +29,4 @@ None. A single pattern: Pipe and Filter with file-based hand-off.
 
 ## Ambiguities & Contradictions
 - The formula-file contract is duplicated rather than shared. test_sync_formulae.rb re-implements parse_formulas.rb's `released:` and URL-version regexes instead of calling FormulaParser, so the test can pass after the parser changes (see the tests finding).
-- `Makefile formula-new` and README "For a one-off manual formula" let hand-written formulae into `Formula/`, alongside the generated ones. The parser handles both, so this is a second producer for stage 2, not a violation.
+- The `formula-new` mise task and README "For a one-off manual formula" let hand-written formulae into `Formula/`, alongside the generated ones. The parser handles both, so this is a second producer for stage 2, not a violation.

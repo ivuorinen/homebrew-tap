@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+#MISE description="Show version information"
+set -euo pipefail
+
+echo "Homebrew Tap Builder"
+echo "Ruby: $(ruby --version)"
+echo "mise: $(mise --version 2>/dev/null)"
+echo "Git: $(git --version 2>/dev/null || echo 'not available')"

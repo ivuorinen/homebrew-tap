@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+#MISE description="Update all gems to their latest versions (respecting Gemfile constraints)"
+set -euo pipefail
+
+echo "🔄 Updating Ruby dependencies..."
+bundle update
+echo "✅ All gems updated to latest versions!"

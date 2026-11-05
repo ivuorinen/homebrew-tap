@@ -1,0 +1,27 @@
+---
+name: Set up mise
+description: >-
+  Install mise, then the tools in mise.toml, and put them on PATH for the rest
+  of the job. The one place the workflows and the test-bot action take mise's
+  own version from: jdx/mise-action needs it before mise runs, so it cannot
+  come from mise.toml.
+
+inputs:
+  cache:
+    description: Restore and save mise's tool cache. Off for jobs whose output is published.
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
+      # Step env, not an input default: Renovate's customManagers:
+      # githubActionsVersions preset bumps only `*_VERSION:` keys. The runner
+      # merges a step's env into the env context before it evaluates `with:`.
+      # Pinned because an unpinned mise changes CI behaviour without a commit.
+      env:
+        # renovate: datasource=github-releases depName=jdx/mise
+        MISE_VERSION: v2026.10.25
+      with:
+        version: ${{ env.MISE_VERSION }}
+        cache: ${{ inputs.cache }}

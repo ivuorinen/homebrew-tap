@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+#MISE description="Syntax-check the scripts and run the offline tests"
+#MISE depends=["check"]
+set -euo pipefail
+
+echo "🧪 Running validation tests..."
+for f in scripts/*.rb; do ruby -c "$f" >/dev/null; done
+bundle exec ruby scripts/test_sync_formulae.rb
+echo "✅ All tests passed!"

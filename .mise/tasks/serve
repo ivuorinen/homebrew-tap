@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+#MISE description="Build the site, serve it, and rebuild on changes"
+#MISE alias=["dev", "watch"]
+#USAGE flag "-p --port <port>" help="Port to listen on" default="4000"
+#USAGE flag "--host <host>" help="Interface to bind; 0.0.0.0 for all" default="localhost"
+set -euo pipefail
+
+# serve.rb parses and builds before it starts listening, so `dev` needs no
+# separate parse or build step.
+echo "🚀 Starting development server on http://${usage_host}:${usage_port}"
+exec bundle exec ruby scripts/serve.rb "$usage_port" "$usage_host"

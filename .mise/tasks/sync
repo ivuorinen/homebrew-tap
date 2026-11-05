@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+#MISE description="Generate/update formulae from the latest GitHub releases (needs an authenticated gh)"
+set -euo pipefail
+
+echo "🔄 Syncing formulae from upstream releases..."
+ruby scripts/sync_formulae.rb
+echo "✅ Sync complete!"

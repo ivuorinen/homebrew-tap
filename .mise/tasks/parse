@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+#MISE description="Parse formulae and generate JSON data only"
+set -euo pipefail
+
+echo "📋 Parsing formulae..."
+bundle exec ruby scripts/parse_formulas.rb
+echo "✅ Formulae parsing complete!"

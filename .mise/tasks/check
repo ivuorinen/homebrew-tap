@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+#MISE description="Check that the required files and directories exist"
+set -euo pipefail
+
+echo "🔍 Checking project structure..."
+command -v ruby >/dev/null || { echo "❌ Ruby not found. Run 'mise install' first." >&2; exit 1; }
+for d in scripts theme Formula; do
+  test -d "$d" || { echo "❌ Directory missing: $d" >&2; exit 1; }
+done
+for f in index.html.erb formulae.html.erb formula.html.erb style.css main.js; do
+  test -f "theme/$f" || { echo "❌ Theme file missing: theme/$f" >&2; exit 1; }
+done
+echo "✅ Project structure OK"

@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+#MISE description="Clean all generated files"
+set -euo pipefail
+
+echo "🧹 Cleaning generated files..."
+rm -rf docs/index.html docs/formulae.html docs/formula \
+  docs/_data/formulae.json docs/style.css docs/main.js
+if [ -d docs/assets ]; then find docs/assets -type f ! -name .gitkeep -delete; fi
+echo "✅ Clean complete!"

@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+#MISE description="Install this tap locally for testing (needs brew)"
+set -euo pipefail
+
+echo "🍺 Installing tap locally..."
+brew tap ivuorinen/tap "$PWD"

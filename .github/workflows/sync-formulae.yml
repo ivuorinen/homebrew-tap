@@ -35,7 +35,8 @@ jobs:
       # made this job fail with "src refspec sync/formulae does not match any"
       # while test-bot silently validated main's formulae instead of the new
       # ones. If this fails the job fails and no PR is opened.
-      # Ruby and bundler come from the action; no separate setup-ruby needed.
+      # The mise.toml tools come from the action and stay on PATH, so the gh
+      # calls below use the pinned gh too.
       - name: Generate and validate formulae
         uses: ./.github/actions/ci
         with:

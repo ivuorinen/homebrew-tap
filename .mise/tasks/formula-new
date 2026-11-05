@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+#MISE description="Create a hand-written formula template (most formulae come from formula-sources.json)"
+#USAGE arg "<name>" help="Formula name, e.g. my-tool"
+set -euo pipefail
+
+name=$usage_name
+file="Formula/${name:0:1}/$name.rb"
+if [ -e "$file" ]; then
+  echo "❌ $file already exists" >&2
+  exit 1
+fi
+# The sync's own mangling, so my-tool@1.2 becomes MyToolAT12 as brew expects.
+# The name goes in as ARGV, not spliced into the Ruby source.
+class=$(ruby -r ./scripts/sync_formulae -e 'puts SyncFormulae.class_name(ARGV[0])' "$name")
+
+echo "📝 Creating new formula: $name"
+mkdir -p "$(dirname "$file")"
+cat >"$file" <<EOF
+class $class < Formula
+  desc "Description of $name"
+  homepage "https://github.com/ivuorinen/$name"
+  url "https://github.com/ivuorinen/$name/archive/v1.0.0.tar.gz"
+  sha256 "REPLACE_WITH_ACTUAL_SHA256"
+  license "MIT"
+
+  def install
+    # Installation steps here
+  end
+
+  test do
+    # Test steps here
+  end
+end
+EOF
+echo "✅ Formula template created at $file"
+echo "📝 Remember to update the URL, SHA256, and implementation!"

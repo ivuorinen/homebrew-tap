@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+#MISE description="Show project information"
+set -euo pipefail
+
+echo "📋 Homebrew Tap Information"
+echo "=========================="
+echo "Ruby version: $(ruby --version)"
+echo "Project root: $PWD"
+echo "Scripts: $(ls -1 scripts/*.rb | wc -l | tr -d ' ') files"
+echo "Formulae: $(find Formula -name '*.rb' | wc -l | tr -d ' ') files"
+echo "Theme files: $(ls -1 theme/* | wc -l | tr -d ' ') files"
+if [ -f docs/_data/formulae.json ]; then
+  echo "Generated formulae: $(ruby -rjson -e 'puts JSON.parse(File.read(ARGV[0]))["formulae_count"]' docs/_data/formulae.json)"
+fi

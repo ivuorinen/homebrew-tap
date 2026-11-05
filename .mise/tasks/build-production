@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+#MISE description="Clean, then build for production deployment"
+#MISE depends=["clean"]
+set -euo pipefail
+
+# A nested run, not depends=["clean", "build"]: mise runs dependencies in
+# parallel, and parse would race clean over docs/_data/formulae.json.
+echo "🏭 Building for production..."
+mise run build
+echo "✅ Production build complete!"

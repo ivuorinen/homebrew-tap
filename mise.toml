@@ -1,0 +1,15 @@
+#:schema https://mise.jdx.dev/schema/mise.json
+
+# The single source of truth for tool versions, locally and in CI (the
+# workflows install these through .github/actions/setup-mise). Renovate's mise
+# manager bumps them, so a version change is always a commit. Tasks live in
+# .mise/tasks/; `mise tasks` lists them.
+[tools]
+ruby = "4.0.9"
+# terser minifies main.js through ExecJS, which needs a JavaScript runtime.
+node = "24.21.0"
+# `mise run sync` reads the GitHub releases through it, and the sync workflow
+# opens its PR with it.
+gh = "2.103.3"
+# Runs the .pre-commit-config.yaml hooks.
+prek = "0.5.7"

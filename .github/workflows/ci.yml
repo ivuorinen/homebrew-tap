@@ -50,13 +50,16 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Setup Ruby
-        uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
-        with:
-          bundler-cache: true
+      # The tools in mise.toml, so this job runs the same versions and the same
+      # tasks as `mise run test` locally.
+      - name: Set up mise
+        uses: ./.github/actions/setup-mise
+
+      - name: Install dependencies
+        run: mise run install
 
       - name: Run tests
-        run: make test
+        run: mise run test
 
       - name: Build site
-        run: make build
+        run: mise run build

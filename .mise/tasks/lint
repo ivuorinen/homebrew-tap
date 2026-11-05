@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+#MISE description="Lint Ruby with RuboCop (no brew needed; the formula audit still runs in CI via brew)"
+set -euo pipefail
+
+echo "🔍 Linting Ruby with RuboCop..."
+bundle exec rubocop

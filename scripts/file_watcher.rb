@@ -45,7 +45,6 @@ module FileWatcher
       formula_files,
       theme_files,
       build_script_files,
-      config_files,
     ].flatten.compact.uniq
   end
 
@@ -87,9 +86,5 @@ module FileWatcher
     %w[parse_formulas build_site asset_processor time_formatter].map do |name|
       File.expand_path("../scripts/#{name}.rb", __dir__)
     end
-  end
-
-  def config_files
-    [File.expand_path("../Makefile", __dir__)]
   end
 end
