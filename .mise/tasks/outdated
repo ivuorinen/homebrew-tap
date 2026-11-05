@@ -3,5 +3,6 @@
 set -euo pipefail
 
 echo "📋 Checking for outdated gems..."
-# bundle outdated exits 1 when anything is outdated; that is a report, not an error.
-bundle outdated || true
+# bundle outdated exits 1 when anything is outdated; that is a report, not an
+# error. Any other status (Bundler's own error codes, 127 for no bundle) fails.
+bundle outdated || [ $? -eq 1 ]
