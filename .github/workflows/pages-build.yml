@@ -27,7 +27,7 @@ jobs:
   build:
     name: Build site
     runs-on: ubuntu-latest
-    # This job runs third-party gem code (make setup/build), so it gets only
+    # This job runs third-party gem code (mise run setup/build), so it gets only
     # what its own steps use. Publishing rights stay on the deploy job.
     permissions:
       contents: read
@@ -40,15 +40,19 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Setup Ruby
-        uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
+      # The tools in mise.toml. No cache: this job's output is published, so it
+      # restores nothing an earlier run saved.
+      - name: Set up mise
+        uses: ./.github/actions/setup-mise
+        with:
+          cache: "false"
 
+      # parse_formulas.rb logs the formula count, so no separate jq step.
       - name: Setup project dependencies and build site
         shell: bash
         run: |
-          make setup
-          make build
-          echo "Generated formulae.json with $(jq '.formulae | length' docs/_data/formulae.json) formulae"
+          mise run setup
+          mise run build
 
       - name: Setup Pages
         id: pages

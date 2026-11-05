@@ -1,7 +1,7 @@
 ---
 name: Validate tap
 description: >-
-  Set up Homebrew and Ruby, then run `brew test-bot --only-tap-syntax` (style,
+  Set up Homebrew and the mise.toml tools, then run `brew test-bot --only-tap-syntax` (style,
   audit, and loadability) against the tap. Shared by the CI and formula-sync
   workflows so their validation cannot drift apart. Install/bottle testing is
   intentionally omitted: the tap ships many keg_only `@version` formulae that
@@ -38,11 +38,6 @@ runs:
           echo "HOMEBREW_NO_ENV_HINTS=1"
         } >> "$GITHUB_ENV"
 
-    - name: Setup Ruby
-      uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
-      with:
-        bundler-cache: true
-
     - name: Set up Homebrew
       id: set-up-homebrew
       uses: Homebrew/actions/setup-homebrew@18fcb8e3e06b4247c676c506750dc95ea7226479 # 2026.07.13.1
@@ -66,9 +61,15 @@ runs:
       shell: bash
       run: brew install-bundler-gems
 
+    # After setup-homebrew, which replaces $GITHUB_WORKSPACE with the tap
+    # clone: mise then reads that checkout's mise.toml, and the tools' paths
+    # come ahead of Homebrew's on PATH for the rest of the job.
+    - name: Set up mise
+      uses: ./.github/actions/setup-mise
+
     - name: Setup project dependencies
       shell: bash
-      run: make setup
+      run: mise run install
 
     - name: Run brew test-bot (cleanup)
       shell: bash
@@ -88,7 +89,7 @@ runs:
         # Lets the sync exit 0 when only some repos fail, so the caller can
         # still open the PR for the rest; the caller fails on this file later.
         SYNC_FAILURES_FILE: ${{ runner.temp }}/sync-failures.txt
-      run: ruby scripts/sync_formulae.rb
+      run: mise run sync
 
     - name: Run brew test-bot (tap syntax)
       shell: bash
