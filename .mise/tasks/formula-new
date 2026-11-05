@@ -9,8 +9,9 @@ if [ -e "$file" ]; then
   echo "❌ $file already exists" >&2
   exit 1
 fi
+# The sync's own mangling, so my-tool@1.2 becomes MyToolAT12 as brew expects.
 # The name goes in as ARGV, not spliced into the Ruby source.
-class=$(ruby -e 'puts ARGV[0].split("-").map(&:capitalize).join' "$name")
+class=$(ruby -r ./scripts/sync_formulae -e 'puts SyncFormulae.class_name(ARGV[0])' "$name")
 
 echo "📝 Creating new formula: $name"
 mkdir -p "$(dirname "$file")"
