@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+#MISE description="Audit this tap's formulae locally, as CI does (needs brew)"
+#MISE depends=["tap-install"]
+set -euo pipefail
+
+echo "🍺 Auditing tap..."
+brew test-bot --only-tap-syntax --tap=ivuorinen/tap

@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+#MISE description="Initial project setup: check the structure, install dependencies"
+#MISE depends=["check", "install"]
+set -euo pipefail
+
+echo "✅ Environment setup complete!"

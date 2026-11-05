@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+#MISE description="Update Bundler itself to the latest version"
+set -euo pipefail
+
+echo "🔄 Updating Bundler..."
+gem update bundler
+echo "✅ Bundler updated!"
+echo "Current version: $(bundle --version)"

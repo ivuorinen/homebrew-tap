@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+#MISE description="Refresh the vendored Homebrew RuboCop config from homebrew-core"
+set -euo pipefail
+
+echo "⬇️  Updating .rubocop_homebrew.yml from Homebrew/homebrew-core..."
+curl -fsSL https://raw.githubusercontent.com/Homebrew/homebrew-core/main/.rubocop.yml -o .rubocop_homebrew.yml
+echo "✅ Updated. Run 'mise run lint' to check for new offenses."
