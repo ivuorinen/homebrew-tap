@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
-#MISE description="Update Bundler itself to the latest version"
+#MISE description="Update Bundler to the latest version and lock it in Gemfile.lock"
 set -euo pipefail
 
 echo "🔄 Updating Bundler..."
-gem update bundler
+# Bundler runs the version Gemfile.lock names (BUNDLED WITH), so installing a
+# newer gem alone changes nothing; this installs it and relocks. A bare
+# --bundler also takes prereleases, so name the latest stable release.
+version=$(ruby -e 'puts Gem.latest_version_for("bundler") || abort("no bundler release found")')
+bundle update --bundler="$version"
 echo "✅ Bundler updated!"
 echo "Current version: $(bundle --version)"
