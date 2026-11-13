@@ -21,7 +21,7 @@ runs:
       # Pinned because an unpinned mise changes CI behaviour without a commit.
       env:
         # renovate: datasource=github-releases depName=jdx/mise
-        MISE_VERSION: v2026.10.25
+        MISE_VERSION: v2026.11.6
       with:
         version: ${{ env.MISE_VERSION }}
         cache: ${{ inputs.cache }}
