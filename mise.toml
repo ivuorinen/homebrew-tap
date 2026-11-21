@@ -10,6 +10,6 @@ ruby = "4.0.9"
 node = "26.13.1"
 # `mise run sync` reads the GitHub releases through it, and the sync workflow
 # opens its PR with it.
-gh = "2.104.0"
+gh = "2.105.0"
 # Runs the .pre-commit-config.yaml hooks.
 prek = "0.5.10"
