@@ -12,4 +12,4 @@ node = "26.13.1"
 # opens its PR with it.
 gh = "2.104.0"
 # Runs the .pre-commit-config.yaml hooks.
-prek = "0.5.10"
+prek = "0.5.11"
