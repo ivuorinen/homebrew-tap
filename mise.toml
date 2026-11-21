@@ -5,7 +5,7 @@
 # manager bumps them, so a version change is always a commit. Tasks live in
 # .mise/tasks/; `mise tasks` lists them.
 [tools]
-ruby = "4.0.9"
+ruby = "4.0.10"
 # terser minifies main.js through ExecJS, which needs a JavaScript runtime.
 node = "26.13.1"
 # `mise run sync` reads the GitHub releases through it, and the sync workflow
