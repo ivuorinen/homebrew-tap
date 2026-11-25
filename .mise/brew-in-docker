@@ -29,7 +29,9 @@ if [[ $git_dir != "$common_dir" ]]; then
   # ../<path to main .git>/worktrees/<name>, which git resolves from $tap_dir
   # inside the container. Mount the same .git where that path lands as well.
   # Docker does not resolve .. in a mount target, so strip each leading ../
-  # and drop one directory from $tap_dir for it.
+  # and drop one directory from $tap_dir for it. When that lands on
+  # $common_dir itself, the mount above already covers it, and Docker refuses
+  # two mounts at one target.
   rel=$(sed -n 's/^gitdir: //p' "$root/.git" 2>/dev/null || true)
   if [[ -n $rel && $rel != /* ]]; then
     dst=$tap_dir
@@ -37,7 +39,10 @@ if [[ $git_dir != "$common_dir" ]]; then
       rel=${rel#../}
       dst=${dst%/*}
     done
-    mounts+=(--mount "type=bind,src=$common_dir,dst=$dst/${rel%/worktrees/*},readonly")
+    dst=$dst/${rel%/worktrees/*}
+    if [[ $dst != "$common_dir" ]]; then
+      mounts+=(--mount "type=bind,src=$common_dir,dst=$dst,readonly")
+    fi
   fi
 fi
 
