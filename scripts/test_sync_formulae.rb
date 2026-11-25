@@ -87,46 +87,19 @@ class TestSyncFormulae
   end
 
   def run_all
-    check_class_name_round_trips
-    check_sanitize_desc
-    check_match_asset
-    check_never_selects_junk
-    check_formula_body
-    check_formula_body_escapes_api_strings
-    check_latest_release_selection
-    check_unpublished_formulae
-    check_group_formulae
-
-    puts "\n#{@failures.zero? ? "ALL PASS" : "#{@failures} FAILURE(S)"}"
-    exit(@failures.zero? ? 0 : 1)
-  end
-
-  private
-
-  # CamelCase -> kebab-case, to assert class_name() stays reversible for
-  # unversioned names (versioned "AT<digits>" names key off the filename instead).
-  def class_to_formula(cls)
-    cls.gsub(/([a-z\d])([A-Z])/, '\1-\2').downcase
-  end
-
-  def check(desc)
-    ok = yield
-    @failures += 1 unless ok
-    puts "#{ok ? "ok  " : "FAIL"} #{desc}"
-  end
-
-  def check_class_name_round_trips
+    # class_name round-trips: CamelCase -> kebab-case must give the name back for
+    # unversioned names (versioned "AT<digits>" names key off the filename instead).
     ["a", ACTION_README, HISTORY, CALVER].each do |name|
       cls = SyncFormulae.class_name(name)
-      check("class_name(#{name}) -> #{cls} round-trips") { class_to_formula(cls) == name }
+      kebab = cls.gsub(/([a-z\d])([A-Z])/, '\1-\2').downcase
+      check("class_name(#{name}) -> #{cls} round-trips") { kebab == name }
     end
     check("class_name(a) == A") { SyncFormulae.class_name("a") == "A" }
     check("class_name(gh-action-readme) == GhActionReadme") do
       SyncFormulae.class_name(ACTION_README) == "GhActionReadme"
     end
-  end
 
-  def check_sanitize_desc
+    # sanitize_desc
     long = "A small CLI that encrypts and decrypts files with your SSH keys using the age format"
     d = SyncFormulae.sanitize_desc(long)
     check("sanitize_desc drops leading article") { !d.match?(/\A(a|an|the)\s/i) }
@@ -140,9 +113,8 @@ class TestSyncFormulae
     check("sanitize_desc truncates at a word boundary") do
       !overlong.start_with?(d2) || overlong[d2.length].nil? || overlong[d2.length] == " "
     end
-  end
 
-  def check_match_asset
+    # match_asset picks the expected asset for every platform.
     EXPECTED.each do |repo, exp|
       assets = FIXTURES[repo]
       SyncFormulae::PLATFORMS.each do |p|
@@ -154,9 +126,8 @@ class TestSyncFormulae
         check("#{repo} #{key.join("/")} sha256 is 64-hex") { got && got[:sha256].match?(/\A[a-f0-9]{64}\z/) }
       end
     end
-  end
 
-  def check_never_selects_junk
+    # match_asset never selects a non-binary or unsupported asset.
     all_picked = EXPECTED.flat_map do |repo, _exp|
       SyncFormulae::PLATFORMS.map { |p| SyncFormulae.match_asset(FIXTURES[repo], p)&.dig(:name) }
     end.compact
@@ -164,25 +135,8 @@ class TestSyncFormulae
     check("never selects .deb/.zip/.exe/.txt") { all_picked.none? { |n| n.match?(/\.(deb|zip|exe|txt)\z/) } }
     check("never selects 386/i386") { all_picked.none? { |n| n.include?("386") } }
     check("never selects windows/freebsd") { all_picked.none? { |n| n.match?(/windows|freebsd/i) } }
-  end
 
-  def base_meta(keg_only:, formula_name:, klass:)
-    SyncFormulae.instance_eval do
-      {
-        name: CALVER, formula_name: formula_name, class: klass, keg_only: keg_only,
-        desc: "GitHub CLI calver command", homepage: "https://github.com/ivuorinen/gh-calver",
-        version: "2026.03.4", released_at: "2026-03-04T12:00:00Z", license: "MIT", bin: CALVER,
-        test: 'system bin/"gh-calver", "--help"', archive: false,
-        # Real release-asset URL shape: the tag in the path is now the only
-        # carrier of the version, so the fixture must not elide it.
-        platforms: [{ os: "macos", arch: "arm",
-                      url: "https://github.com/ivuorinen/gh-calver/releases/download/2026.03.4/gh-calver_darwin-arm64",
-                      sha256: "a" * 64 }]
-      }
-    end
-  end
-
-  def check_formula_body
+    # formula_body
     body = SyncFormulae.formula_body(base_meta(keg_only: false, formula_name: CALVER, klass: "GhCalver"))
     # `brew audit` rejects an explicit version when the URL already yields it.
     check("formula_body omits explicit version (brew audit rejects it)") do
@@ -205,11 +159,9 @@ class TestSyncFormulae
     check("versioned formula_body has keg_only :versioned_formula") { vbody.include?("keg_only :versioned_formula") }
     check("versioned formula_body class is the mangled name") { vbody.include?("class GhCalverAT2026034 < Formula") }
     check("versioned formula_body header uses the @ name") { vbody.include?("# gh-calver@2026.03.4 —") }
-  end
 
-  # A repo description is API text: a `"` must not end the literal and a
-  # `#{...}` must not become interpolation in the generated Ruby.
-  def check_formula_body_escapes_api_strings
+    # A repo description is API text: a `"` must not end the literal and a
+    # `#{...}` must not become interpolation in the generated Ruby.
     # Built from parts so no linter autocorrect can turn the fixture itself into
     # live interpolation; the payload raises rather than doing anything if run.
     hostile = ["Tool with a \"quoted\" word and #", '{raise "interpolated"} in it'].join
@@ -225,11 +177,9 @@ class TestSyncFormulae
       desc_arg.respond_to?(:unescaped) && desc_arg.unescaped == hostile
     end
     check("FormulaParser round-trips the escaped desc") { parse_with_formula_parser(body)[:description] == hostile }
-  end
 
-  # The unversioned formula follows GitHub's releases/latest, never the first
-  # row of the release list, which can be a prerelease or a later backport.
-  def check_latest_release_selection
+    # The unversioned formula follows GitHub's releases/latest, never the first
+    # row of the release list, which can be a prerelease or a later backport.
     release = lambda do |tag, prerelease: false|
       { "tag_name" => tag, "draft" => false, "prerelease" => prerelease, "published_at" => "2026-01-01T00:00:00Z",
         "assets" => ["#{tag}_darwin_arm64.tar.gz"].map { |n| self.class.asset(n) } }
@@ -250,7 +200,13 @@ class TestSyncFormulae
     check("a release on a later page is read") { metas.any? { |m| m[:tag] == "v2.0.0" } }
     check("published versions: every page, no prerelease, no v prefix") { published == %w[1.9.9 2.0.0] }
 
-    broken = rows.map { |r| (r["tag_name"] == "v2.0.0") ? r.merge("assets" => []) : r }
+    broken = rows.map do |r|
+      if r["tag_name"] == "v2.0.0"
+        r.merge("assets" => [])
+      else
+        r
+      end
+    end
     raised = begin
       with_stubbed_gh(responses.merge(list => [broken])) do
         SyncFormulae.build_metas({ "repo" => "o/tool" })
@@ -260,11 +216,9 @@ class TestSyncFormulae
       true
     end
     check("latest release without binaries fails the repo") { raised }
-  end
 
-  # The sync deletes a versioned formula once its release is unpublished, but
-  # never a hand-written one, the unversioned one, or another tool's.
-  def check_unpublished_formulae
+    # The sync deletes a versioned formula once its release is unpublished, but
+    # never a hand-written one, the unversioned one, or another tool's.
     Dir.mktmpdir do |dir|
       generated = "# tool — #{SyncFormulae::GENERATED_MARKER}; do not edit by hand.\n"
       {
@@ -273,14 +227,13 @@ class TestSyncFormulae
         "tool@0.9.0.rb"       => "class ToolAT090 < Formula\nend\n", # hand-written
         "tool.rb"             => generated,                         # unversioned
         "tool-extra@1.0.0.rb" => generated,                         # another tool
-      }.each { |file, body| File.write(File.join(dir, file), body) }
+      }.each { |file, contents| File.write(File.join(dir, file), contents) }
 
       got = SyncFormulae.unpublished_formulae("tool", %w[2.0.0], dir: dir).map { |p| File.basename(p) }
       check("unpublished_formulae: only the tool's generated, unpublished versions") { got == %w[tool@1.0.0.rb] }
     end
-  end
 
-  def check_group_formulae
+    # SiteBuilder#group_formulae
     builder = SiteBuilder.new
     builder.instance_variable_set(:@data, {
       "formulae" => [
@@ -301,6 +254,35 @@ class TestSyncFormulae
     end
     check("group_formulae synthesizes a main for an orphan x@ver") do
       by_name["y"]["version"] == "1.0" && by_name["y"]["versions"].map { |v| v["name"] } == ["y@1.0"]
+    end
+
+    summary = @failures.zero? ? "ALL PASS" : "#{@failures} FAILURE(S)"
+    puts "\n#{summary}"
+    exit(@failures.zero? ? 0 : 1)
+  end
+
+  private
+
+  def check(desc)
+    ok = yield
+    @failures += 1 unless ok
+    status = ok ? "ok  " : "FAIL"
+    puts "#{status} #{desc}"
+  end
+
+  def base_meta(keg_only:, formula_name:, klass:)
+    SyncFormulae.instance_eval do
+      {
+        name: CALVER, formula_name: formula_name, class: klass, keg_only: keg_only,
+        desc: "GitHub CLI calver command", homepage: "https://github.com/ivuorinen/gh-calver",
+        version: "2026.03.4", released_at: "2026-03-04T12:00:00Z", license: "MIT", bin: CALVER,
+        test: 'system bin/"gh-calver", "--help"', archive: false,
+        # Real release-asset URL shape: the tag in the path is now the only
+        # carrier of the version, so the fixture must not elide it.
+        platforms: [{ os: "macos", arch: "arm",
+                      url: "https://github.com/ivuorinen/gh-calver/releases/download/2026.03.4/gh-calver_darwin-arm64",
+                      sha256: "a" * 64 }]
+      }
     end
   end
 

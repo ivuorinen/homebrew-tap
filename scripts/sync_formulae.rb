@@ -209,6 +209,7 @@ module SyncFormulae
     archives = platforms.map { |pl| pl[:archive] }.uniq
     raise Error, "#{name} #{version} mixes archive and raw assets; add a `bin`/override" if archives.size > 1
 
+    bin = source["bin"] || name
     {
       name:        name,
       tag:         release["tag_name"],
@@ -217,8 +218,8 @@ module SyncFormulae
       desc:        source["desc"] || sanitize_desc(info["description"]),
       homepage:    "https://github.com/#{source["repo"]}",
       license:     source["license"] || spdx(info),
-      bin:         source["bin"] || name,
-      test:        source["test"] || %Q(system bin/#{(source["bin"] || name).inspect}, "--help"),
+      bin:         bin,
+      test:        source["test"] || %Q(system bin/#{bin.inspect}, "--help"),
       archive:     archives.first,
       platforms:   platforms,
     }
@@ -309,8 +310,10 @@ module SyncFormulae
           FileUtils.mkdir_p(File.dirname(file[:path]))
           File.write(file[:path], file[:body])
           fname = File.basename(file[:path], ".rb")
-          changed << "#{fname}: #{old ? "updated" : "(new)"} -> #{meta[:version]}"
-          puts "* #{fname} #{old ? "updated" : "created"} -> #{meta[:version]} (#{meta[:platforms].size} platforms)"
+          status = old ? "updated" : "(new)"
+          verb = old ? "updated" : "created"
+          changed << "#{fname}: #{status} -> #{meta[:version]}"
+          puts "* #{fname} #{verb} -> #{meta[:version]} (#{meta[:platforms].size} platforms)"
         end
       end
       unpublished_formulae(metas.first[:name], published_versions).each do |path|
@@ -325,10 +328,10 @@ module SyncFormulae
       failures << "#{repo}: #{e.message}"
     end
 
-    puts changed.empty? ? "\nNo formula changes." : "\nChanged:\n#{changed.map { |c| "  #{c}" }.join("\n")}"
+    puts changed.empty? ? "\nNo formula changes." : "\nChanged:\n  #{changed.join("\n  ")}"
     return if failures.empty?
 
-    warn "\nFailed:\n#{failures.map { |f| "  #{f}" }.join("\n")}"
+    warn "\nFailed:\n  #{failures.join("\n  ")}"
     failures_file = ENV.fetch("SYNC_FAILURES_FILE", "")
     exit 1 if failures_file.empty? || failures.size == sources.size
 

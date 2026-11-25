@@ -55,9 +55,30 @@ class SiteBuilder
     puts "🏗️  Building static site..."
 
     setup_directories
-    load_data
-    generate_assets
-    generate_pages
+
+    # formulae.json is the parse stage's output and the only source of the data,
+    # tap_name included. A missing file is a usage error, not an empty tap: the
+    # former fallback rendered a zero-formula site under a second, wrong tap name.
+    formulae_file = File.join(DATA_DIR, "formulae.json")
+    abort "❌ #{formulae_file} not found; run scripts/parse_formulas.rb first" unless File.exist?(formulae_file)
+
+    @data = JSON.parse(File.read(formulae_file))
+    group_formulae
+
+    copy_assets
+    generate_css
+    minify_js
+
+    File.write(File.join(OUTPUT_DIR, "index.html"), load_template("index.html.erb").result(binding))
+
+    # setup_directories created OUTPUT_DIR/formula.
+    @data["formulae"].each do |formula|
+      @formula = formula
+      content = load_template("formula.html.erb").result(binding)
+      File.write(File.join(OUTPUT_DIR, "formula", "#{formula["name"]}.html"), content)
+    end
+
+    File.write(File.join(OUTPUT_DIR, "formulae.html"), load_template("formulae.html.erb").result(binding))
 
     puts "✅ Site built successfully in #{OUTPUT_DIR}"
     puts "🌐 Open #{File.join(OUTPUT_DIR, "index.html")} in your browser"
@@ -75,21 +96,11 @@ class SiteBuilder
 
   def setup_directories
     FileUtils.mkdir_p(File.join(OUTPUT_DIR, "formula"))
-    return if templates_exist?
+    templates = %w[index.html.erb formulae.html.erb formula.html.erb]
+    return if templates.all? { |template| File.exist?(File.join(TEMPLATES_DIR, template)) }
 
     puts "⚠️  Templates not found in #{TEMPLATES_DIR}. Please ensure theme/*.html.erb files exist."
     exit 1
-  end
-
-  # formulae.json is the parse stage's output and the only source of the data,
-  # tap_name included. A missing file is a usage error, not an empty tap: the
-  # former fallback rendered a zero-formula site under a second, wrong tap name.
-  def load_data
-    formulae_file = File.join(DATA_DIR, "formulae.json")
-    abort "❌ #{formulae_file} not found; run scripts/parse_formulas.rb first" unless File.exist?(formulae_file)
-
-    @data = JSON.parse(File.read(formulae_file))
-    group_formulae
   end
 
   # Collapse the flat formulae list (main + "name@version" entries) so the site
@@ -125,54 +136,10 @@ class SiteBuilder
     end.reverse
   end
 
-  def generate_assets
-    copy_assets
-    generate_css
-    minify_js
-  end
-
-  def generate_pages
-    generate_index_page
-    generate_formulae_pages
-  end
-
-  def generate_index_page
-    template = load_template("index.html.erb")
-    content = template.result(binding)
-    File.write(File.join(OUTPUT_DIR, "index.html"), content)
-  end
-
-  def generate_formulae_pages
-    @data["formulae"].each do |formula|
-      generate_formula_page(formula)
-    end
-
-    # Generate formulae index
-    template = load_template("formulae.html.erb")
-    content = template.result(binding)
-    File.write(File.join(OUTPUT_DIR, "formulae.html"), content)
-  end
-
-  def generate_formula_page(formula)
-    @formula = formula
-    template = load_template("formula.html.erb")
-    content = template.result(binding)
-
-    formula_dir = File.join(OUTPUT_DIR, "formula")
-    FileUtils.mkdir_p(formula_dir)
-    File.write(File.join(formula_dir, "#{formula["name"]}.html"), content)
-  end
-
   def load_template(name)
     template_path = File.join(TEMPLATES_DIR, name)
     template_content = File.read(template_path)
     ERB.new(template_content)
-  end
-
-  def templates_exist?
-    %w[index.html.erb formulae.html.erb formula.html.erb].all? do |template|
-      File.exist?(File.join(TEMPLATES_DIR, template))
-    end
   end
 end
 
