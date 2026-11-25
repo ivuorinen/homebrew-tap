@@ -25,6 +25,20 @@ git_dir=$(git -C "$root" rev-parse --path-format=absolute --git-dir 2>/dev/null 
 common_dir=$(git -C "$root" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)
 if [[ $git_dir != "$common_dir" ]]; then
   mounts+=(--mount "type=bind,src=$common_dir,dst=$common_dir,readonly")
+  # `git worktree add --relative-paths` (git 2.48+) writes that pointer as
+  # ../<path to main .git>/worktrees/<name>, which git resolves from $tap_dir
+  # inside the container. Mount the same .git where that path lands as well.
+  # Docker does not resolve .. in a mount target, so strip each leading ../
+  # and drop one directory from $tap_dir for it.
+  rel=$(sed -n 's/^gitdir: //p' "$root/.git" 2>/dev/null || true)
+  if [[ -n $rel && $rel != /* ]]; then
+    dst=$tap_dir
+    while [[ $rel == ../* ]]; do
+      rel=${rel#../}
+      dst=${dst%/*}
+    done
+    mounts+=(--mount "type=bind,src=$common_dir,dst=$dst/${rel%/worktrees/*},readonly")
+  fi
 fi
 
 if [[ $# -eq 0 ]]; then
