@@ -6,8 +6,9 @@ echo "🍺 Installing and testing every formula..."
 # A new container on every run, so an install that only works on an already
 # set-up machine fails here. The loop runs inside the container: it keeps going
 # after a failure, prints each failure's log tail and exits 1 if any failed.
-# Without a TTY, Ctrl+C reaches only the loop's bash, never the brew it is
-# waiting on; the trap stops the loop once that brew step returns.
+# Ctrl+C reaches the running brew as well as this loop. brew catches it and
+# exits 130 instead of dying from the signal, so bash alone would go on to the
+# next formula; the trap stops the loop.
 # shellcheck disable=SC2016
 .mise/brew-in-docker bash -c '
 set -uo pipefail

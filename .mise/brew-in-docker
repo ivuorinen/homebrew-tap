@@ -72,9 +72,13 @@ if [[ -t 0 && -t 1 ]]; then tty=(-it); fi
 echo "🐳 Running in $image..."
 # exec, so a SIGINT sent to this script reaches docker, which forwards it to
 # the container. Without it, bash holds the signal until docker exits.
+# TINI_KILL_PROCESS_GROUP: the --init process passes a signal only to its own
+# child, a bash that acts on it once its current command ends. This sends it to
+# that command too, so Ctrl+C stops a running brew at once.
 # HOMEBREW_NO_ASK: with -it, brew asks [y/n] before installing the tools
 # `brew style` needs (shellcheck) and waits for an answer.
 exec docker run --rm --init --pull=always ${tty[@]+"${tty[@]}"} \
+  -e TINI_KILL_PROCESS_GROUP=1 \
   -e HOMEBREW_NO_AUTO_UPDATE=1 \
   -e HOMEBREW_NO_ANALYTICS=1 \
   -e HOMEBREW_DEVELOPER=1 \
