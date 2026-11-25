@@ -138,7 +138,8 @@ mise run build-production  # Clean build for production deployment
 mise run version           # Show version information
 ```
 
-A task fails as soon as any of its commands fails.
+A task fails as soon as any of its commands fails. The exception is
+`tap-install`: it tests every formula, then exits 1 if any of them failed.
 
 **File Watching and Auto-Rebuild:**
 
