@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-#MISE description="Auto-correct RuboCop offenses"
+#MISE description="Auto-correct brew style offenses in a fresh Homebrew container (needs Docker)"
 set -euo pipefail
 
-echo "🔧 Auto-correcting RuboCop offenses..."
-bundle exec rubocop -A
+echo "🔧 Auto-correcting brew style offenses..."
+.mise/brew-in-docker --writable brew style --fix ivuorinen/tap

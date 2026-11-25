@@ -127,8 +127,8 @@ mise run serve --port 8080 --host 0.0.0.0  # Custom port and host
 
 **Homebrew-specific tasks:**
 ```bash
-mise run tap-test               # Audit the tap as CI does (brew test-bot)
-mise run tap-install            # Install this tap locally
+mise run tap-test               # Audit the tap as CI does (brew test-bot, in Docker)
+mise run tap-install            # Install and test every formula from scratch (in Docker)
 mise run formula-new tool-name  # Create new formula template
 ```
 

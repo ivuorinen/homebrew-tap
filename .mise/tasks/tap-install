@@ -1,6 +1,34 @@
 #!/usr/bin/env bash
-#MISE description="Install this tap locally for testing (needs brew)"
+#MISE description="Install and test every formula in a fresh Homebrew container (needs Docker)"
 set -euo pipefail
 
-echo "🍺 Installing tap locally..."
-brew tap ivuorinen/tap "$PWD"
+echo "🍺 Installing and testing every formula..."
+# A new container on every run, so an install that only works on an already
+# set-up machine fails here. The loop runs inside the container: it keeps going
+# after a failure, prints each failure's log tail and exits 1 if any failed.
+# Without a TTY, Ctrl+C reaches only the loop's bash, never the brew it is
+# waiting on; the trap stops the loop once that brew step returns.
+# shellcheck disable=SC2016
+.mise/brew-in-docker bash -c '
+set -uo pipefail
+trap "exit 130" INT TERM
+cd "$(mktemp -d)"
+names=$(for f in "$(brew --repo ivuorinen/tap)"/Formula/*/*.rb; do basename "$f" .rb; done | sort)
+passed=0
+total=0
+for name in $names; do
+  total=$((total + 1))
+  if ! brew install --formula "ivuorinen/tap/$name" >install.log 2>&1; then
+    echo "❌ $name (install failed)"
+    tail -n 20 install.log | sed "s/^/  /"
+  elif ! brew test "ivuorinen/tap/$name" >test.log 2>&1; then
+    echo "❌ $name (test failed)"
+    tail -n 20 test.log | sed "s/^/  /"
+  else
+    echo "✅ $name"
+    passed=$((passed + 1))
+  fi
+done
+echo "$passed/$total formulae installed and tested"
+[ "$passed" -eq "$total" ]
+'
