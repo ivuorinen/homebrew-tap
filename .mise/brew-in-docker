@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+# Run a command in a fresh Homebrew container, with this repo as the
+# ivuorinen/tap tap, after checking that Docker is usable.
+#
+#   .mise/brew-in-docker [--writable] <command> [args...]
+#
+# The brew tasks in .mise/tasks/ call it. It lives outside that directory so
+# mise does not list it as a task. The repo is mounted read-only unless
+# --writable is the first argument.
+set -euo pipefail
+
+image=ghcr.io/homebrew/brew:latest
+tap_dir=/home/linuxbrew/.linuxbrew/Homebrew/Library/Taps/ivuorinen/homebrew-tap
+root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+
+# --mount, not -v: -v silently creates a missing source directory.
+mounts=(--mount "type=bind,src=$root,dst=$tap_dir,readonly")
+if [[ ${1-} == --writable ]]; then
+  mounts=(--mount "type=bind,src=$root,dst=$tap_dir")
+  shift
+fi
+# In a linked worktree, .git is a file pointing into the main checkout's .git.
+# Mount that at its own path too, or git (and test-bot) cannot read the repo.
+git_dir=$(git -C "$root" rev-parse --path-format=absolute --git-dir 2>/dev/null || true)
+common_dir=$(git -C "$root" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)
+if [[ $git_dir != "$common_dir" ]]; then
+  mounts+=(--mount "type=bind,src=$common_dir,dst=$common_dir,readonly")
+  # `git worktree add --relative-paths` (git 2.48+) writes that pointer as
+  # ../<path to main .git>/worktrees/<name>, which git resolves from $tap_dir
+  # inside the container. Mount the same .git where that path lands as well.
+  # Docker does not resolve .. in a mount target, so strip each leading ../
+  # and drop one directory from $tap_dir for it. When that lands on
+  # $common_dir itself, the mount above already covers it, and Docker refuses
+  # two mounts at one target.
+  rel=$(sed -n 's/^gitdir: //p' "$root/.git" 2>/dev/null || true)
+  if [[ -n $rel && $rel != /* ]]; then
+    dst=$tap_dir
+    while [[ $rel == ../* ]]; do
+      rel=${rel#../}
+      dst=${dst%/*}
+    done
+    dst=$dst/${rel%/worktrees/*}
+    if [[ $dst != "$common_dir" ]]; then
+      mounts+=(--mount "type=bind,src=$common_dir,dst=$dst,readonly")
+    fi
+  fi
+fi
+
+if [[ $# -eq 0 ]]; then
+  echo "usage: .mise/brew-in-docker [--writable] <command> [args...]" >&2
+  exit 2
+fi
+if ! command -v docker >/dev/null 2>&1; then
+  echo "❌ docker not found: install Docker to run this task" >&2
+  exit 1
+fi
+if ! docker info >/dev/null 2>&1; then
+  echo "❌ Docker is not running, or this user cannot reach the daemon" >&2
+  exit 1
+fi
+
+# The image's brew lags main by days, and new style cops land on main.
+# "$@" is the caller's command, passed to bash -c as arguments, never spliced
+# into this string.
+# shellcheck disable=SC2016
+setup='set -euo pipefail
+git config --global --add safe.directory "*"
+repo=$(brew --repo)
+git -C "$repo" fetch -q origin main
+git -C "$repo" checkout -q -f origin/main
+brew trust --tap ivuorinen/tap >/dev/null
+exec "$@"'
+
+tty=()
+if [[ -t 0 && -t 1 ]]; then tty=(-it); fi
+
+echo "🐳 Running in $image..."
+# exec, so a SIGINT sent to this script reaches docker, which forwards it to
+# the container. Without it, bash holds the signal until docker exits.
+# TINI_KILL_PROCESS_GROUP: the --init process passes a signal only to its own
+# child, a bash that acts on it once its current command ends. This sends it to
+# that command too, so Ctrl+C stops a running brew at once.
+# HOMEBREW_NO_ASK: with -it, brew asks [y/n] before installing the tools
+# `brew style` needs (shellcheck) and waits for an answer.
+exec docker run --rm --init --pull=always ${tty[@]+"${tty[@]}"} \
+  -e TINI_KILL_PROCESS_GROUP=1 \
+  -e HOMEBREW_NO_AUTO_UPDATE=1 \
+  -e HOMEBREW_NO_ANALYTICS=1 \
+  -e HOMEBREW_DEVELOPER=1 \
+  -e HOMEBREW_NO_ENV_HINTS=1 \
+  -e HOMEBREW_NO_ASK=1 \
+  "${mounts[@]}" \
+  "$image" bash -c "$setup" bash "$@"

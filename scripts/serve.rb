@@ -28,21 +28,6 @@ class DevServer
     puts "📁 Serving from: #{@site_dir}"
     puts "💡 Press Ctrl+C to stop"
 
-    start_server
-  end
-
-  private
-
-  # Each stage runs in a child process so it loads the scripts as they are on
-  # disk now. In-process, require_relative loaded them once at startup, and the
-  # watcher rebuilt with stale code after an edit to parse_formulas.rb or
-  # build_site.rb. The child inherits Bundler's environment from `bundle exec`.
-  def build_site
-    system(RbConfig.ruby, File.join(__dir__, "parse_formulas.rb"), exception: true)
-    system(RbConfig.ruby, File.join(__dir__, "build_site.rb"), exception: true)
-  end
-
-  def start_server
     server = WEBrick::HTTPServer.new(
       Port:         @port,
       Host:         @host,
@@ -68,6 +53,17 @@ class DevServer
 
     server.start
   end
+
+  private
+
+  # Each stage runs in a child process so it loads the scripts as they are on
+  # disk now. In-process, require_relative loaded them once at startup, and the
+  # watcher rebuilt with stale code after an edit to parse_formulas.rb or
+  # build_site.rb. The child inherits Bundler's environment from `bundle exec`.
+  def build_site
+    system(RbConfig.ruby, File.join(__dir__, "parse_formulas.rb"), exception: true)
+    system(RbConfig.ruby, File.join(__dir__, "build_site.rb"), exception: true)
+  end
 end
 
 # Command line interface
@@ -77,7 +73,8 @@ if __FILE__ == $PROGRAM_NAME
     server = DevServer.new
     files = server.all_watched_files.select { |f| File.exist?(f) && !File.directory?(f) }
     puts "📋 Watching #{files.count} files:"
-    files.sort.each { |f| puts "  - #{f.sub("#{File.expand_path("..", __dir__)}/", "")}" }
+    project_root = "#{File.expand_path("..", __dir__)}/"
+    files.sort.each { |f| puts "  - #{f.sub(project_root, "")}" }
     exit 0
   end
 

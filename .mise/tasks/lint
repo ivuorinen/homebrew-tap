@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-#MISE description="Lint Ruby with RuboCop (no brew needed; the formula audit still runs in CI via brew)"
+#MISE description="Lint with brew style in a fresh Homebrew container, as CI does (needs Docker)"
 set -euo pipefail
 
-echo "🔍 Linting Ruby with RuboCop..."
-bundle exec rubocop
+echo "🔍 Linting with brew style..."
+.mise/brew-in-docker brew style ivuorinen/tap

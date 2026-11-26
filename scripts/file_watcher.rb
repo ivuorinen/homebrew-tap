@@ -18,12 +18,21 @@ module FileWatcher
 
         next if current_mtime <= last_mtime
 
-        handle_file_change(last_mtime)
-        last_mtime = perform_rebuild_with_debounce
+        changed_file = find_changed_file(last_mtime)
+        puts "📝 Changed: #{changed_file}" if changed_file
+        puts "🔄 Rebuilding in 1 second..."
+
+        sleep 1 # Debounce: wait for additional changes
+        final_mtime = max_mtime
+        puts "🔨 Building site..."
+        build_site
+        # Only after a successful build, so a failed one is retried on the next poll.
+        last_mtime = final_mtime
         puts "✅ Rebuild complete"
       rescue => e
         puts "⚠️  File watcher error: #{e.message}"
-        puts "📍 Backtrace: #{e.backtrace.first(3).join(", ")}"
+        backtrace = e.backtrace.first(3).join(", ")
+        puts "📍 Backtrace: #{backtrace}"
         sleep 2
         puts "🔄 File watcher continuing..."
       end
@@ -43,8 +52,13 @@ module FileWatcher
   def all_watched_files
     [
       formula_files,
-      theme_files,
-      build_script_files,
+      # Templates, CSS, JS and assets: everything under theme/.
+      Dir.glob(File.expand_path("../theme/**/*", __dir__)),
+      # Reloaded on each rebuild, since DevServer#build_site runs them as child
+      # processes.
+      %w[parse_formulas build_site asset_processor time_formatter].map do |name|
+        File.expand_path("../scripts/#{name}.rb", __dir__)
+      end,
     ].flatten.compact.uniq
   end
 
@@ -57,34 +71,7 @@ module FileWatcher
 
   private
 
-  def handle_file_change(last_mtime)
-    changed_file = find_changed_file(last_mtime)
-    puts "📝 Changed: #{changed_file}" if changed_file
-    puts "🔄 Rebuilding in 1 second..."
-  end
-
-  def perform_rebuild_with_debounce
-    sleep 1 # Debounce: wait for additional changes
-    final_mtime = max_mtime
-    puts "🔨 Building site..."
-    build_site
-    final_mtime
-  end
-
   def formula_files
     Dir.glob(File.expand_path("../Formula/**/*.rb", __dir__))
-  end
-
-  # Templates, CSS, JS and assets: everything under theme/.
-  def theme_files
-    Dir.glob(File.expand_path("../theme/**/*", __dir__))
-  end
-
-  # Reloaded on each rebuild, since DevServer#build_site runs them as child
-  # processes.
-  def build_script_files
-    %w[parse_formulas build_site asset_processor time_formatter].map do |name|
-      File.expand_path("../scripts/#{name}.rb", __dir__)
-    end
   end
 end
